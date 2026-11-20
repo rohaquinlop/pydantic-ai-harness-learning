@@ -15,6 +15,7 @@ from examples.ui_qa_reviewer.tests.helpers import (
 
 def test_review_runs_agent_on_frontend_diff(ui_repo: Path) -> None:
     script = Script([[NAVIGATE], [issue()]])
+    calls: list[str] = []
 
     outcome = review(
         ui_repo,
@@ -22,10 +23,12 @@ def test_review_runs_agent_on_frontend_diff(ui_repo: Path) -> None:
         PREVIEW,
         "Add the sign-up page.",
         script.model(),
-        stub_browser(),
+        stub_browser(calls=calls),
     )
 
     assert isinstance(outcome.output, QAFindings)
+    assert calls == [f"navigate {PREVIEW}/"]
+    assert outcome.usage.requests == 2
     assert "b/index.html" in script.prompts[0]
     assert "app.py" not in script.prompts[0]
 

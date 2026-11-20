@@ -27,16 +27,21 @@ def _seen(note: str, image: bool) -> str | ToolReturn:
     )
 
 
-def stub_browser(image: bool = True) -> Toolset[QADeps]:
+def stub_browser(
+    image: bool = True, calls: list[str] | None = None
+) -> Toolset[QADeps]:
     """Stands in for PlaywrightBrowser, with the same image return shape."""
     toolset = FunctionToolset[QADeps]()
+    log = calls if calls is not None else []
 
     @toolset.tool_plain
     def navigate(url: str) -> str | ToolReturn:
+        log.append(f"navigate {url}")
         return _seen(f"Opened {url}", image)
 
     @toolset.tool_plain
     def screenshot() -> str | ToolReturn:
+        log.append("screenshot")
         return _seen("Screenshot captured.", image)
 
     return Toolset(toolset)
