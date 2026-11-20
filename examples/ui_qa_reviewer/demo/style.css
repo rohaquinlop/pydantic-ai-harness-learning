@@ -18,6 +18,11 @@ form {
   gap: 0.5rem;
 }
 
+button,
+input {
+  font: inherit;
+}
+
 button {
   padding: 0.6rem;
   border: 0;
