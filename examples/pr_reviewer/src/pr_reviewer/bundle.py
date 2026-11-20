@@ -8,9 +8,9 @@ from pathlib import Path
 from pr_reviewer.models import Bundle, Finding
 
 
-def run(repo: Path, *args: str) -> str:
+def run(repo: Path, *args: str, stdin: str | None = None) -> str:
     return subprocess.run(
-        args, cwd=repo, check=True, capture_output=True, text=True
+        args, cwd=repo, check=True, capture_output=True, text=True, input=stdin
     ).stdout
 
 

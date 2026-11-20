@@ -37,13 +37,17 @@ def state_path(repo: Path) -> Path:
     return git_dir / "pr-reviewer" / f"{branch.replace('/', '__')}.json"
 
 
+def start_round(state: ReviewState, new_round: bool) -> ReviewState:
+    return ReviewState(round=state.round + 1) if new_round else state
+
+
 def load_state(path: Path, new_round: bool) -> ReviewState:
     state = (
         ReviewState.model_validate_json(path.read_text())
         if path.exists()
         else ReviewState()
     )
-    return ReviewState(round=state.round + 1) if new_round else state
+    return start_round(state, new_round)
 
 
 def save_state(path: Path, state: ReviewState) -> None:
