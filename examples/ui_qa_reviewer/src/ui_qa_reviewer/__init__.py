@@ -1,6 +1,7 @@
 import argparse
 import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic_ai.exceptions import AgentRunError
 
@@ -22,6 +23,9 @@ def main() -> None:
     parser.add_argument("--task", required=True, help="The task contract.")
     parser.add_argument("--model", help="Default: the Sonnet model.")
     args = parser.parse_args()
+    url = urlsplit(args.url)
+    if url.scheme not in ("http", "https") or not url.hostname:
+        parser.error("--url must be an http or https URL with a host")
 
     try:
         outcome = review(args.repo, args.base, args.url, args.task, args.model)

@@ -28,7 +28,7 @@ from ui_qa_reviewer.models import (
     QAResult,
 )
 
-LIGHT_MODEL = "anthropic:claude-sonnet-5-5"
+DEFAULT_MODEL = "anthropic:claude-sonnet-5-5"
 IMAGE_TOOLS = frozenset({"navigate", "screenshot"})
 DEFAULT_PORTS = {"http": 80, "https": 443}
 
@@ -153,14 +153,14 @@ def build_agent(
     preview_url: str, browser: AbstractCapability[QADeps] | None = None
 ) -> Agent[QADeps, QAResult]:
     agent = Agent(
-        LIGHT_MODEL,
+        DEFAULT_MODEL,
         deps_type=QADeps,
         output_type=QAResult,
         instructions=INSTRUCTIONS,
         retries={"tools": 3, "output": 3},
         defer_model_check=True,
         capabilities=[
-            browser or preview_browser(preview_url),
+            browser if browser is not None else preview_browser(preview_url),
             ToolBudgets(total=40),
             WrapUpAtLimits(),
         ],
