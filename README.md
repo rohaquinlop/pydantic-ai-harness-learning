@@ -20,6 +20,24 @@ uv sync
 uv run pytest
 ```
 
+The other checks:
+
+```bash
+uv run ruff check .
+```
+
+```bash
+uv run ruff format --check .
+```
+
+```bash
+uv run ty check
+```
+
+```bash
+uv run complexipy examples
+```
+
 Shared test helpers live in `examples/<name>/tests/helpers.py` and are imported as `examples.<name>.tests.helpers`, so names never clash across examples.
 
 ## Add an example
