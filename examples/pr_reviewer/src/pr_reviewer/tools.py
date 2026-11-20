@@ -41,7 +41,13 @@ def _resolve(ctx: RunContext[ReviewDeps], path: str) -> Path:
 
 def _iter_files(ctx: RunContext[ReviewDeps], pattern: str) -> Iterator[Path]:
     base = _base(ctx)
-    for resolved in sorted({p.resolve() for p in base.glob(pattern)}):
+    try:
+        matches = sorted({p.resolve() for p in base.glob(pattern)})
+    except (NotImplementedError, ValueError) as e:
+        raise ModelRetry(
+            f"Invalid glob pattern {pattern!r}: {e}. Use a relative pattern."
+        ) from e
+    for resolved in matches:
         if not resolved.is_relative_to(base) or not resolved.is_file():
             continue
         if ".git" not in resolved.relative_to(base).parts:
