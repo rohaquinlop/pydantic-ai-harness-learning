@@ -1,0 +1,24 @@
+[project]
+name = "ui-qa-reviewer"
+version = "0.1.0"
+description = "A QA reviewer for the UI changes in a PR, built with pydantic-ai and a real browser."
+readme = "README.md"
+authors = [
+    { name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pr-reviewer",
+    "pydantic-ai-harness[playwright]==0.71.0",
+    "pydantic-ai-slim[anthropic,openai]==2.71.0",
+]
+
+[project.scripts]
+ui-qa-reviewer = "ui_qa_reviewer:main"
+
+[tool.uv.sources]
+pr-reviewer = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.10.3,<0.11.0"]
+build-backend = "uv_build"
