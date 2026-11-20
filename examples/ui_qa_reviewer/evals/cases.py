@@ -31,7 +31,7 @@ PLANTS = [
 
 
 def planted_files() -> dict[str, str]:
-    """The demo with two bugs a desktop browser can see."""
+    """Both bugs show at desktop size, since `PlaywrightBrowser` cannot change the viewport."""
     files = demo_files()
     for name, old, new in PLANTS:
         assert old in files[name], f"demo changed: {old!r} not in {name}"

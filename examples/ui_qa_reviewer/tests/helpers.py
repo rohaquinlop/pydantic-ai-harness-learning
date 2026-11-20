@@ -75,7 +75,7 @@ def qa_run(
 
 
 def retries(result: AgentRunResult[QAResult]) -> list[str]:
-    """Rejected outputs: the output tool's returns other than the final one."""
+    """pydantic-ai 2.71 sends an output validator's retry as a `ToolReturnPart`, not a `RetryPromptPart`."""
     returns = [
         str(p.content)
         for m in result.all_messages()
