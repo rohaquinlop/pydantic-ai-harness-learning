@@ -24,8 +24,6 @@ Ctx = EvaluatorContext[RepoCase, QAResult, Bugs]
 
 @dataclass
 class FindsPlantedBugs(Evaluator[RepoCase, QAResult, Bugs]):
-    """Recall per planted bug: a finding has one of its categories."""
-
     def evaluate(self, ctx: Ctx) -> dict[str, bool]:
         found = (
             {f.category for f in ctx.output.findings}

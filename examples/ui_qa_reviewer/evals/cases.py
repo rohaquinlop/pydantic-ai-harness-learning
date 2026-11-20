@@ -62,7 +62,6 @@ CASES = [
 
 @contextmanager
 def serve(directory: Path) -> Generator[str]:
-    """Serve `directory` on a free loopback port, and yield its URL."""
     handler = partial(SimpleHTTPRequestHandler, directory=str(directory))
     with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
         thread = threading.Thread(target=server.serve_forever, daemon=True)

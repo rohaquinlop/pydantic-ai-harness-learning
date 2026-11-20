@@ -21,7 +21,6 @@ def review(
     model: Model | str | None = None,
     browser: AbstractCapability[QADeps] | None = None,
 ) -> QAOutcome:
-    """One fresh QA run on the preview. No frontend change means no model call."""
     bundle = build_bundle(repo, base_ref, task)
     if not bundle.changed_files:
         passed = QAPassed(sha=bundle.head_sha, checked=[NO_CHANGES])

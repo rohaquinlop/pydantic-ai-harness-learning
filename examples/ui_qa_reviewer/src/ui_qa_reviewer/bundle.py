@@ -24,7 +24,6 @@ DIFF_FLAGS = (
 
 
 def build_bundle(repo: Path, base_ref: str, task: str) -> QABundle:
-    """The frontend part of the `merge-base...HEAD` diff."""
     head_sha = run(repo, "git", "rev-parse", "HEAD").strip()
     base_sha = run(repo, "git", "merge-base", base_ref, "HEAD").strip()
     span = (f"{base_sha}...{head_sha}", "--", *FRONTEND_GLOBS)
