@@ -6,9 +6,16 @@ from pydantic_ai.models import Model
 
 from pr_reviewer.agent import build_prompt, reviewer
 from pr_reviewer.bundle import build_bundle, policy_base
+from pr_reviewer.github import post_review, read_pr_state, review_payload
 from pr_reviewer.harness_agent import harness_reviewer, policy_workspace
 from pr_reviewer.models import Current, ReviewDeps, ReviewOutcome, ReviewResult
-from pr_reviewer.state import load_state, plan_call, save_state, state_path
+from pr_reviewer.state import (
+    load_state,
+    plan_call,
+    save_state,
+    start_round,
+    state_path,
+)
 from pr_reviewer.tools import changed_files
 
 REQUEST_LIMIT = 30
@@ -42,10 +49,19 @@ def review(
     new_round: bool,
     model: Model | str | None = None,
     engine: Engine = "custom",
+    post: bool = False,
 ) -> ReviewOutcome:
-    """Run the next review call of this branch's round, with a fresh agent run."""
+    """Run the next review call of this branch's round, with a fresh agent run.
+
+    With `post`, the budget lives in the PR's bot reviews and the result is posted there.
+    """
+    target = pr if post else None
     path = state_path(repo)
-    state = load_state(path, new_round)
+    state = (
+        start_round(read_pr_state(repo, target), new_round)
+        if target
+        else load_state(path, new_round)
+    )
     plan = plan_call(state, has_pr=pr is not None)
     bundle = build_bundle(repo, base_ref, task, pr, state.findings)
 
@@ -69,5 +85,10 @@ def review(
     findings = (
         [] if isinstance(result.output, Current) else result.output.findings
     )
-    save_state(path, state.model_copy(update={"findings": findings}))
-    return ReviewOutcome(plan, result.output, result.usage)
+    state = state.model_copy(update={"findings": findings})
+    save_state(path, state)
+    outcome = ReviewOutcome(plan, result.output, result.usage)
+    if target:
+        payload = review_payload(outcome, state, bundle.head_sha, bundle.diff)
+        post_review(repo, target, payload)
+    return outcome

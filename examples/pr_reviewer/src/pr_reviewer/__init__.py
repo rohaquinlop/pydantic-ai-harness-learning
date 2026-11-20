@@ -32,7 +32,14 @@ def main() -> None:
         default="custom",
         help="custom: hand-written tools. harness: pydantic-ai-harness capabilities.",
     )
+    parser.add_argument(
+        "--post",
+        action="store_true",
+        help="Post the result as a review on --pr, and keep the review budget on the PR.",
+    )
     args = parser.parse_args()
+    if args.post and not args.pr:
+        parser.error("--post needs --pr")
 
     try:
         outcome = review(
@@ -43,6 +50,7 @@ def main() -> None:
             args.new_round,
             args.model,
             args.engine,
+            args.post,
         )
     except (BudgetSpent, AgentRunError) as e:
         raise SystemExit(f"reviewer failed: {e}") from e
