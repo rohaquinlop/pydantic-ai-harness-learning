@@ -49,7 +49,15 @@ def build_bundle(
         task=task or pr_task or "(none given)",
         base_sha=base_sha,
         head_sha=head_sha,
-        diff=run(repo, "git", "diff", f"{base_sha}...{head_sha}"),
+        diff=run(
+            repo,
+            "git",
+            "diff",
+            "--no-ext-diff",
+            "--src-prefix=a/",
+            "--dst-prefix=b/",
+            f"{base_sha}...{head_sha}",
+        ),
         pr_discussion=discussion,
         prior_findings=prior_findings,
     )
