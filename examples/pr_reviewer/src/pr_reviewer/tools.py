@@ -58,7 +58,9 @@ def read_file(
     """
     target = _resolve(ctx, path)
     if not target.is_file():
-        return f"{path} is not a file in the policy base. Use glob to find files."
+        return (
+            f"{path} is not a file in the policy base. Use glob to find files."
+        )
     lines = target.read_text(errors="replace").splitlines()
     start = max(start_line, 1)
     chunk = lines[start - 1 : start - 1 + min(max_lines, MAX_READ_LINES)]
@@ -75,11 +77,15 @@ def glob(ctx: RunContext[ReviewDeps], pattern: str) -> list[str]:
     base = _base(ctx)
     files = [p.relative_to(base).as_posix() for p in _iter_files(ctx, pattern)]
     if len(files) > MAX_GLOB_RESULTS:
-        return files[:MAX_GLOB_RESULTS] + [f"... {len(files) - MAX_GLOB_RESULTS} more"]
+        return files[:MAX_GLOB_RESULTS] + [
+            f"... {len(files) - MAX_GLOB_RESULTS} more"
+        ]
     return files
 
 
-def grep(ctx: RunContext[ReviewDeps], pattern: str, file_glob: str = "**/*") -> str:
+def grep(
+    ctx: RunContext[ReviewDeps], pattern: str, file_glob: str = "**/*"
+) -> str:
     """Search file contents in the policy base with a Python regular expression.
 
     Args:

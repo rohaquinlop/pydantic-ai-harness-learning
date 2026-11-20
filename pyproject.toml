@@ -3,13 +3,9 @@ name = "pydantic-ai-learning"
 version = "0.1.0"
 description = "Examples, experiments, and learnings with pydantic-ai."
 readme = "README.md"
-authors = [
-    { name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }
-]
+authors = [{ name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }]
 requires-python = ">=3.13"
-dependencies = [
-    "pr-reviewer",
-]
+dependencies = ["pr-reviewer"]
 
 [tool.uv.workspace]
 members = ["examples/*"]
@@ -25,6 +21,10 @@ dev = [
     "ruff>=0.17.6",
     "ty>=0.0.107",
 ]
+
+[tool.ruff]
+line-length = 80
+indent-width = 4
 
 [tool.pytest.ini_options]
 testpaths = ["examples"]
