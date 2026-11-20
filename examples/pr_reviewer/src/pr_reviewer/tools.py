@@ -27,6 +27,10 @@ def _base(ctx: RunContext[ReviewDeps]) -> Path:
 def _resolve(ctx: RunContext[ReviewDeps], path: str) -> Path:
     base = _base(ctx)
     target = (base / path).resolve()
+    if not target.is_relative_to(base):
+        raise ModelRetry(
+            f"{path} is outside the policy base. Use a path relative to its root."
+        )
     return target
 
 
