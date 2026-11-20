@@ -58,9 +58,12 @@ def main() -> None:
         raise SystemExit(f"{' '.join(e.cmd)} failed: {e.stderr.strip()}") from e
 
     plan = outcome.plan
-    print(
-        f"{plan.kind} call {plan.number} of {MAX_REVIEWS} (+1 verify), {plan.model}"
+    call = (
+        f"review call {plan.number} of {MAX_REVIEWS} (+1 verify)"
+        if plan.kind == "review"
+        else f"verify call (after {MAX_REVIEWS} reviews)"
     )
+    print(f"{call}, {plan.model}")
     if isinstance(outcome.output, Current):
         print(f"current at {outcome.output.sha}")
     else:
