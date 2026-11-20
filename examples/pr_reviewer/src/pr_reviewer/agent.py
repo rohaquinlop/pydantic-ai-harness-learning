@@ -97,7 +97,7 @@ def _render_findings(findings: list[Finding]) -> str:
 def build_prompt(bundle: Bundle, verify: bool) -> str:
     parts = [
         f"Candidate head SHA: {bundle.head_sha}",
-        f"Policy base SHA: {bundle.base_sha}",
+        f"Policy base SHA: {bundle.policy_sha}",
         f"<task-contract>\n{bundle.task}\n</task-contract>",
     ]
     if bundle.pr_discussion:

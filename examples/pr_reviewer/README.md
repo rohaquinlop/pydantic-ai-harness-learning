@@ -7,7 +7,7 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
 1. Structured output: `Findings | Current` as `output_type`.
 2. Deps and tools: `ReviewDeps(policy_base)` and read-only `read_file`, `glob`, `grep` scoped to the policy base.
 3. Output validator: `@reviewer.output_validator` raises `ModelRetry` when `Current.sha` is not the head SHA, or a finding names a file that is not in the diff or the policy base.
-4. Bundle and review loop: each run builds a bundle from git (and `gh` with `--pr`), checks out the merge-base as a temporary worktree, and runs one fresh agent call. Each round has 3 review calls plus 1 verify call. In round 1 before a PR exists, call 1 uses Haiku and calls 2-3 use Opus. Every other call uses Haiku. Each call has a `UsageLimits(request_limit=30)`. The state lives in `.git/pr-reviewer/<branch>.json`. An empty diff returns `Current` without a model call, and does not spend a call.
+4. Bundle and review loop: each run builds a bundle from git (and `gh` with `--pr`), checks out the target branch tip as a temporary worktree (the policy base: rules and code), diffs `merge-base...HEAD`, and runs one fresh agent call. Each round has 3 review calls plus 1 verify call. In round 1 before a PR exists, call 1 uses Haiku and calls 2-3 use Opus. Every other call uses Haiku. Each call has a `UsageLimits(request_limit=30)`. The state lives in `.git/pr-reviewer/<branch>.json`. An empty diff returns `Current` without a model call, and does not spend a call. The budget check still runs first, so a spent budget raises an error even for an empty diff.
 5. Offline tests: `models.ALLOW_MODEL_REQUESTS = False`, a scripted `FunctionModel` (`tests/helpers.py`) for tools, validator, and the review loop on a temp git repo, and `TestModel` with `reviewer.override(model=...)`. Run `uv run pytest` from the repo root.
 6. Evals: `evals/cases.py` holds tiny repos with one planted bug each (plus one clean change). `evals/review_evals.py` is a `pydantic_evals.Dataset` with three evaluators: `FindsPlantedBug` (recall), `CleanIsCurrent`, and `ExtraFindings` (findings that miss the planted bug). Run it with a real model:
 
@@ -40,7 +40,7 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
     - Approval gate: a review runs only when someone adds the `pr-reviewer: run` label (or `pr-reviewer: new round`, which also resets the budget). Only people with triage access or more can add labels. The first step removes the label, so each run needs a new approval, and pushes alone never spend tokens. The run reviews the head SHA at the time of the label, so a push made after the approval is not reviewed.
     - `Findings` → `REQUEST_CHANGES` with one inline comment per finding. A finding on a line that the diff does not show goes in the review body, because GitHub rejects inline comments there.
     - `Current` → a `COMMENT` with `current at <sha>`. `GITHUB_TOKEN` cannot approve unless a repo setting allows it.
-    - Before each post, the bot's open change requests are dismissed.
+    - After each post, the bot's earlier change requests are dismissed. If the post fails, the old change request stays.
     - The review budget lives in a hidden, base64-encoded `<!-- pr-reviewer-state: ... -->` marker in the newest bot review, because the runner's `.git/` is lost after each job. Only reviews by `github-actions[bot]` (`BOT_LOGIN`) count, so a PR author cannot forge the state.
     - Setup: add the `ANTHROPIC_API_KEY` repo secret, and create the two labels:
 
@@ -52,7 +52,10 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
         gh label create "pr-reviewer: new round" --description "Approve one pr-reviewer run with a new budget round"
         ```
     - To use another model, set the `PR_REVIEWER_MODEL` repo variable (for example `deepseek:deepseek-chat`) and add that provider's key as a secret. The workflow passes `DEEPSEEK_API_KEY`. For other providers, add their key to the `env` of the Review step.
-    - The workflow uses `pull_request`, not `pull_request_target`, because `uv sync` builds the PR's code. So PRs from forks get no review: they get no secrets.
+    - The PR's code and workflow file are never run. The workflow uses `pull_request_target`, so GitHub runs `pr-review.yml` from the base branch, and a PR cannot change the steps that get the secrets. It checks out the base branch into `tool/` and installs pr-reviewer from there, and checks out the PR head into `repo/` only as git data for the diff. So a PR that changes pr-reviewer is reviewed by the base branch's version. Both checkouts drop the token after the clone (`persist-credentials: false`).
+    - The workflow uses `--engine harness`. On a large PR, the custom engine can reach the request limit and fail, but `WrapUpAtLimits` asks for a final answer at the last allowed request.
+    - PRs from forks get no review: the job runs only when the PR head is in the same repository.
+    - A change to `pr-review.yml` takes effect only after it is merged into the base branch.
     - If the job fails during the agent run, the call is not counted, because the state is posted only with the result.
 
 ## Run

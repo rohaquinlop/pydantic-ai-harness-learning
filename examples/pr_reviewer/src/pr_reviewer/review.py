@@ -60,7 +60,11 @@ def _reserve_and_run(
     model: Model | str,
     engine: Engine,
 ) -> tuple[ReviewState, AgentRunResult[ReviewResult]]:
-    """Spend the call before it runs, so a crash still counts against the budget."""
+    """Spend the call in the local state before it runs, so a crash still counts.
+
+    With `--post`, the PR state is written only with the result, so a crash there
+    does not count.
+    """
     reserved = (
         {"verify_used": True}
         if plan.kind == "verify"
@@ -69,7 +73,7 @@ def _reserve_and_run(
     state = state.model_copy(update=reserved)
     save_state(path, state)
 
-    with policy_base(repo, bundle.base_sha) as base:
+    with policy_base(repo, bundle.policy_sha) as base:
         deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
         result = run_reviewer(
             engine,

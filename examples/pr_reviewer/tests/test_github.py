@@ -8,6 +8,7 @@ from pr_reviewer import bundle, github
 from pr_reviewer.github import commentable_lines, read_pr_state, review_payload
 from pr_reviewer.models import CallPlan, Findings, ReviewOutcome, ReviewState
 from pr_reviewer.review import review
+from pr_reviewer.tools import changed_files
 from pydantic_ai.usage import RunUsage
 
 from examples.pr_reviewer.tests.helpers import (
@@ -30,6 +31,7 @@ class FakeGh:
     reviews: list[dict[str, Any]] = field(default_factory=list)
     posted: list[dict[str, Any]] = field(default_factory=list)
     dismissed: list[int] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)
 
     def __call__(self, repo: Path, *args: str, stdin: str | None = None) -> str:
         if args[0] != "gh":
@@ -38,6 +40,7 @@ class FakeGh:
             pr = {"title": "t", "body": "b", "comments": [], "reviews": []}
             return "7" if "number" in args else json.dumps(pr)
         if "PUT" in args:
+            self.log.append("dismiss")
             self.dismissed.append(int(args[4].split("/")[-2]))
         elif "POST" in args and stdin:
             self._post(json.loads(stdin))
@@ -46,6 +49,7 @@ class FakeGh:
         return ""
 
     def _post(self, payload: dict[str, Any]) -> None:
+        self.log.append("post")
         self.posted.append(payload)
         changes = payload["event"] == "REQUEST_CHANGES"
         state = "CHANGES_REQUESTED" if changes else "COMMENTED"
@@ -73,6 +77,15 @@ def post_once(repo: Path, reply: Call) -> ReviewOutcome:
 
 def test_commentable_lines_are_new_side_hunk_lines() -> None:
     assert commentable_lines(DIFF) == {"calc.py": {1, 2}}
+
+
+def test_content_lines_that_look_like_headers_stay_content() -> None:
+    diff = (
+        "diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n"
+        "@@ -1 +1,3 @@\n x\n+++ b/y\n+z\n"
+    )
+    assert commentable_lines(diff) == {"a.py": {1, 2, 3}}
+    assert changed_files(diff) == {"a.py"}
 
 
 def test_findings_outside_the_diff_go_in_the_body(gh: FakeGh) -> None:
@@ -108,6 +121,7 @@ def test_post_requests_changes_then_dismisses_on_current(
     assert gh.posted[0]["comments"][0]["line"] == 2
     assert gh.posted[1]["commit_id"] == sha
     assert gh.dismissed == [1]
+    assert gh.log == ["post", "post", "dismiss"]
     state = read_pr_state(demo_repo, "7")
     assert (state.calls, state.findings) == (2, [])
 

@@ -53,6 +53,14 @@ AGENTS = {"custom": reviewer, "harness": harness_reviewer}
             "calc.py:2:",
         ),
         ("custom", "grep", {"pattern": "("}, "Invalid regular expression"),
+        ("custom", "glob", {"pattern": "/etc/*"}, "Invalid glob pattern"),
+        ("custom", "glob", {"pattern": ""}, "Invalid glob pattern"),
+        (
+            "custom",
+            "grep",
+            {"pattern": "x", "file_glob": "/etc/*"},
+            "Invalid glob pattern",
+        ),
         ("harness", "find_files", {"pattern": "*.py"}, "calc.py"),
         ("harness", "read_file", {"path": "calc.py"}, "def ratio(a, b):"),
         (

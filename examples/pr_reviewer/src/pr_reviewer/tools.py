@@ -14,8 +14,13 @@ MAX_GREP_FILE_BYTES = 1_000_000
 
 def changed_files(diff: str) -> frozenset[str]:
     files: set[str] = set()
+    in_hunk = False
     for line in diff.splitlines():
-        if line.startswith(("--- a/", "+++ b/")):
+        if line.startswith("diff --git "):
+            in_hunk = False
+        elif line.startswith("@@ "):
+            in_hunk = True
+        elif not in_hunk and line.startswith(("--- a/", "+++ b/")):
             files.add(line[6:].split("\t")[0])
     return frozenset(files)
 
@@ -36,7 +41,13 @@ def _resolve(ctx: RunContext[ReviewDeps], path: str) -> Path:
 
 def _iter_files(ctx: RunContext[ReviewDeps], pattern: str) -> Iterator[Path]:
     base = _base(ctx)
-    for resolved in sorted({p.resolve() for p in base.glob(pattern)}):
+    try:
+        matches = sorted({p.resolve() for p in base.glob(pattern)})
+    except (NotImplementedError, ValueError) as e:
+        raise ModelRetry(
+            f"Invalid glob pattern {pattern!r}: {e}. Use a relative pattern."
+        ) from e
+    for resolved in matches:
         if not resolved.is_relative_to(base) or not resolved.is_file():
             continue
         if ".git" not in resolved.relative_to(base).parts:

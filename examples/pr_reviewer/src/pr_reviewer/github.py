@@ -18,16 +18,20 @@ def commentable_lines(diff: str) -> dict[str, set[int]]:
     lines: dict[str, set[int]] = {}
     current: set[int] = set()
     number = 0
+    in_hunk = False
     for line in diff.splitlines():
         hunk = HUNK.match(line)
-        if line.startswith("+++ "):
+        if line.startswith("diff --git "):
+            in_hunk = False
+        elif not in_hunk and line.startswith("+++ "):
             path = (
                 line[6:].split("\t")[0] if line.startswith("+++ b/") else None
             )
             current = lines.setdefault(path, set()) if path else set()
         elif hunk:
             number = int(hunk.group(1))
-        elif line.startswith(("+", " ")):
+            in_hunk = True
+        elif in_hunk and line.startswith(("+", " ")):
             current.add(number)
             number += 1
     return lines
@@ -109,22 +113,16 @@ def read_pr_state(repo: Path, pr: str) -> ReviewState:
 
 
 def post_review(repo: Path, pr: str, payload: dict[str, Any]) -> None:
-    """Dismiss the bot's open change requests, then post the new review."""
+    """Post the new review, then dismiss the bot's older change requests.
+
+    Posting first means a failed post leaves the old change request in place.
+    """
     number = _pr_number(repo, pr)
-    for review in _bot_reviews(repo, number):
-        if review["state"] == "CHANGES_REQUESTED":
-            run(
-                repo,
-                "gh",
-                "api",
-                "--method",
-                "PUT",
-                f"{REVIEWS % number}/{review['id']}/dismissals",
-                "-f",
-                "message=Superseded by a newer pr-reviewer review.",
-                "-f",
-                "event=DISMISS",
-            )
+    stale = [
+        review["id"]
+        for review in _bot_reviews(repo, number)
+        if review["state"] == "CHANGES_REQUESTED"
+    ]
     run(
         repo,
         "gh",
@@ -136,3 +134,16 @@ def post_review(repo: Path, pr: str, payload: dict[str, Any]) -> None:
         "-",
         stdin=json.dumps(payload),
     )
+    for review_id in stale:
+        run(
+            repo,
+            "gh",
+            "api",
+            "--method",
+            "PUT",
+            f"{REVIEWS % number}/{review_id}/dismissals",
+            "-f",
+            "message=Superseded by a newer pr-reviewer review.",
+            "-f",
+            "event=DISMISS",
+        )
