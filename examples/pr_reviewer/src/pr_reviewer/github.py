@@ -113,22 +113,16 @@ def read_pr_state(repo: Path, pr: str) -> ReviewState:
 
 
 def post_review(repo: Path, pr: str, payload: dict[str, Any]) -> None:
-    """Dismiss the bot's open change requests, then post the new review."""
+    """Post the new review, then dismiss the bot's older change requests.
+
+    Posting first means a failed post leaves the old change request in place.
+    """
     number = _pr_number(repo, pr)
-    for review in _bot_reviews(repo, number):
-        if review["state"] == "CHANGES_REQUESTED":
-            run(
-                repo,
-                "gh",
-                "api",
-                "--method",
-                "PUT",
-                f"{REVIEWS % number}/{review['id']}/dismissals",
-                "-f",
-                "message=Superseded by a newer pr-reviewer review.",
-                "-f",
-                "event=DISMISS",
-            )
+    stale = [
+        review["id"]
+        for review in _bot_reviews(repo, number)
+        if review["state"] == "CHANGES_REQUESTED"
+    ]
     run(
         repo,
         "gh",
@@ -140,3 +134,16 @@ def post_review(repo: Path, pr: str, payload: dict[str, Any]) -> None:
         "-",
         stdin=json.dumps(payload),
     )
+    for review_id in stale:
+        run(
+            repo,
+            "gh",
+            "api",
+            "--method",
+            "PUT",
+            f"{REVIEWS % number}/{review_id}/dismissals",
+            "-f",
+            "message=Superseded by a newer pr-reviewer review.",
+            "-f",
+            "event=DISMISS",
+        )

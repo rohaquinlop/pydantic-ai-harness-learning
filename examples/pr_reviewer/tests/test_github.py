@@ -31,6 +31,7 @@ class FakeGh:
     reviews: list[dict[str, Any]] = field(default_factory=list)
     posted: list[dict[str, Any]] = field(default_factory=list)
     dismissed: list[int] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)
 
     def __call__(self, repo: Path, *args: str, stdin: str | None = None) -> str:
         if args[0] != "gh":
@@ -39,6 +40,7 @@ class FakeGh:
             pr = {"title": "t", "body": "b", "comments": [], "reviews": []}
             return "7" if "number" in args else json.dumps(pr)
         if "PUT" in args:
+            self.log.append("dismiss")
             self.dismissed.append(int(args[4].split("/")[-2]))
         elif "POST" in args and stdin:
             self._post(json.loads(stdin))
@@ -47,6 +49,7 @@ class FakeGh:
         return ""
 
     def _post(self, payload: dict[str, Any]) -> None:
+        self.log.append("post")
         self.posted.append(payload)
         changes = payload["event"] == "REQUEST_CHANGES"
         state = "CHANGES_REQUESTED" if changes else "COMMENTED"
@@ -118,6 +121,7 @@ def test_post_requests_changes_then_dismisses_on_current(
     assert gh.posted[0]["comments"][0]["line"] == 2
     assert gh.posted[1]["commit_id"] == sha
     assert gh.dismissed == [1]
+    assert gh.log == ["post", "post", "dismiss"]
     state = read_pr_state(demo_repo, "7")
     assert (state.calls, state.findings) == (2, [])
 
