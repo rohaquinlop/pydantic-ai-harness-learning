@@ -1,0 +1,29 @@
+# pydantic-ai learning
+
+Examples, experiments, and learnings with [pydantic-ai](https://pydantic.dev/docs/ai/overview/).
+
+Each example is a uv workspace member under `examples/<name>/`, with its own `pyproject.toml` and `README.md`.
+
+## Examples
+
+| Example | What it shows |
+|---|---|
+| [pr_reviewer](examples/pr_reviewer/) | A fresh, read-only PR reviewer modeled on shepherd's reviewer: structured output, deps, and tools. |
+
+## Setup
+
+```bash
+uv sync
+```
+
+```bash
+uv run pytest
+```
+
+Shared test helpers live in `examples/<name>/tests/helpers.py` and are imported as `examples.<name>.tests.helpers`, so names never clash across examples.
+
+## Add an example
+
+1. `uv init --package --name <name> examples/<name>`
+2. Add `<name>` to `dependencies` and `[tool.uv.sources]` in the root `pyproject.toml`.
+3. `uv sync`
