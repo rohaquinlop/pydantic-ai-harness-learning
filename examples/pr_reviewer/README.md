@@ -36,6 +36,15 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
     uv run -m examples.pr_reviewer.evals.review_evals --engine harness --repeat 3
     ```
 
+8. GitHub integration: `--post` (needs `--pr`) posts the result as one PR review (`github.py`), and `.github/workflows/pr-review.yml` runs it on every push to a PR.
+    - `Findings` → `REQUEST_CHANGES` with one inline comment per finding. A finding on a line that the diff does not show goes in the review body, because GitHub rejects inline comments there.
+    - `Current` → a `COMMENT` with `current at <sha>`. `GITHUB_TOKEN` cannot approve unless a repo setting allows it.
+    - Before each post, the bot's open change requests are dismissed.
+    - The review budget lives in a hidden, base64-encoded `<!-- pr-reviewer-state: ... -->` marker in the newest bot review, because the runner's `.git/` is lost after each job. Only reviews by `github-actions[bot]` (`BOT_LOGIN`) count, so a PR author cannot forge the state.
+    - Setup: add the `ANTHROPIC_API_KEY` repo secret. Add the `pr-reviewer: new round` label to a PR to start a new round.
+    - The workflow uses `pull_request`, not `pull_request_target`, because `uv sync` builds the PR's code. So PRs from forks get no review: they get no secrets.
+    - If the job fails during the agent run, the call is not counted, because the state is posted only with the result.
+
 ## Run
 
 Commit your change first. The reviewer reads `HEAD`, not the working tree.
