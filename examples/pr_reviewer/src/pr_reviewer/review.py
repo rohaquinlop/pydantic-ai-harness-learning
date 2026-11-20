@@ -73,7 +73,7 @@ def _reserve_and_run(
     state = state.model_copy(update=reserved)
     save_state(path, state)
 
-    with policy_base(repo, bundle.base_sha) as base:
+    with policy_base(repo, bundle.policy_sha) as base:
         deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
         result = run_reviewer(
             engine,

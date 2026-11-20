@@ -8,6 +8,7 @@ class Bundle(BaseModel):
 
     task: str
     base_sha: str
+    policy_sha: str
     head_sha: str
     diff: str
     pr_discussion: str | None = None

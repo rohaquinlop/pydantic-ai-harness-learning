@@ -44,10 +44,12 @@ def build_bundle(
 ) -> Bundle:
     head_sha = run(repo, "git", "rev-parse", "HEAD").strip()
     base_sha = run(repo, "git", "merge-base", base_ref, "HEAD").strip()
+    policy_sha = run(repo, "git", "rev-parse", f"{base_ref}^{{commit}}").strip()
     pr_task, discussion = _pr_discussion(repo, pr) if pr else (None, None)
     return Bundle(
         task=task or pr_task or "(none given)",
         base_sha=base_sha,
+        policy_sha=policy_sha,
         head_sha=head_sha,
         diff=run(
             repo,

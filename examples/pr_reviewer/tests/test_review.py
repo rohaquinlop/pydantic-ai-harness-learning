@@ -3,10 +3,11 @@ from typing import get_args
 
 import pytest
 from pr_reviewer.bundle import run
-from pr_reviewer.models import Current, ReviewOutcome
+from pr_reviewer.models import Current, Findings, ReviewOutcome
 from pr_reviewer.review import Engine, review
 from pr_reviewer.state import BudgetSpent, load_state, state_path
 
+from examples.pr_reviewer.evals.cases import _commit
 from examples.pr_reviewer.tests.helpers import Call, Script, final, finding
 
 READ_RULES: Call = ("read_file", {"path": "CLAUDE.md"})
@@ -92,3 +93,13 @@ def test_empty_diff_is_current_without_a_model_call(demo_repo: Path) -> None:
     assert script.prompts == []
     state = load_state(state_path(demo_repo), new_round=False)
     assert (state.calls, state.findings) == (0, [])
+
+
+def test_policy_base_is_the_target_tip(demo_repo: Path) -> None:
+    run(demo_repo, "git", "switch", "-q", "main")
+    _commit(demo_repo, {"NEW.md": "Rule added after the branch.\n"}, "rule")
+    run(demo_repo, "git", "switch", "-q", "feat/x")
+
+    outcome, _ = review_once(demo_repo, final("Findings", finding("NEW.md")))
+
+    assert isinstance(outcome.output, Findings)
