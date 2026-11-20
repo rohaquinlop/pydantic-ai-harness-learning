@@ -31,6 +31,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
       - name: Review
@@ -38,10 +39,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.base_ref }}
+          PR: ${{ github.event.pull_request.number }}
           NEW_ROUND: "${{ github.event.label.name == 'pr-reviewer: new round' && '--new-round' || '' }}"
           MODEL: ${{ vars.PR_REVIEWER_MODEL && format('--model={0}', vars.PR_REVIEWER_MODEL) || '' }}
         run: >-
           uv run pr-reviewer
-          --base "origin/${{ github.base_ref }}"
-          --pr "${{ github.event.pull_request.number }}"
+          --base "origin/$BASE"
+          --pr "$PR"
           --post $NEW_ROUND $MODEL
