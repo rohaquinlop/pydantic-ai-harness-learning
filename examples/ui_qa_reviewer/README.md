@@ -43,11 +43,17 @@ export ANTHROPIC_API_KEY=...
 git fetch && uv run ui-qa-reviewer --base origin/main --url http://localhost:5173 --task "<task contract>"
 ```
 
-The default model is `anthropic:claude-sonnet-5-5`, because the agent reads screenshots and drives many browser steps. Use `--model` for another model with vision and tool use. For example, DeepSeek's `deepseek-flash` accepts images (`deepseek-v4-pro` does not):
+The default model is `anthropic:claude-sonnet-5-5`, because the agent reads screenshots and drives many browser steps. Use `--model` for another model with vision and tool use. For example, DeepSeek's `deepseek-flash` accepts images:
 
 ```bash
 export DEEPSEEK_API_KEY=...
 ```
+
+```bash
+uv run ui-qa-reviewer --base origin/main --url http://localhost:5173 --task "<task contract>" --model deepseek:deepseek-flash
+```
+
+The evals take the same flag:
 
 ```bash
 uv run -m examples.ui_qa_reviewer.evals.review_evals --model deepseek:deepseek-flash
