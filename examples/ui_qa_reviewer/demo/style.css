@@ -26,6 +26,11 @@ button {
   color: #fff;
 }
 
+button:focus-visible {
+  outline: 3px solid #1c1e21;
+  outline-offset: 2px;
+}
+
 #message {
   overflow-wrap: anywhere;
 }
