@@ -40,7 +40,7 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
     - Approval gate: a review runs only when someone adds the `pr-reviewer: run` label (or `pr-reviewer: new round`, which also resets the budget). Only people with triage access or more can add labels. The first step removes the label, so each run needs a new approval, and pushes alone never spend tokens. The run reviews the head SHA at the time of the label, so a push made after the approval is not reviewed.
     - `Findings` → `REQUEST_CHANGES` with one inline comment per finding. A finding on a line that the diff does not show goes in the review body, because GitHub rejects inline comments there.
     - `Current` → a `COMMENT` with `current at <sha>`. `GITHUB_TOKEN` cannot approve unless a repo setting allows it.
-    - Before each post, the bot's open change requests are dismissed.
+    - After each post, the bot's earlier change requests are dismissed. If the post fails, the old change request stays.
     - The review budget lives in a hidden, base64-encoded `<!-- pr-reviewer-state: ... -->` marker in the newest bot review, because the runner's `.git/` is lost after each job. Only reviews by `github-actions[bot]` (`BOT_LOGIN`) count, so a PR author cannot forge the state.
     - Setup: add the `ANTHROPIC_API_KEY` repo secret, and create the two labels:
 
