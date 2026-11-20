@@ -19,7 +19,7 @@ def plan_call(state: ReviewState, has_pr: bool) -> CallPlan:
     other call, and the verify call that checks fixes to the last findings, uses the
     light model.
     """
-    if state.calls < MAX_REVIEWS:
+    if state.calls <= MAX_REVIEWS:
         number = state.calls + 1
         heavy = number > 1 and state.round == 1 and not has_pr
         return CallPlan("review", number, HEAVY_MODEL if heavy else LIGHT_MODEL)
