@@ -59,8 +59,8 @@ If you find no issues, return QAPassed with the candidate head SHA and what you 
 
 
 def origin(url: str) -> tuple[str, str, int | None]:
-    parts = urlsplit(url)
     try:
+        parts = urlsplit(url)
         port = parts.port
     except ValueError:
         return ("", "", None)
@@ -111,7 +111,6 @@ def has_image_evidence(messages: list[ModelMessage]) -> bool:
 
 
 def check_result(ctx: RunContext[QADeps], output: QAResult) -> QAResult:
-    """Reject findings off the preview, and a pass that never looked at the page."""
     deps = ctx.deps
     if isinstance(output, QAFindings):
         preview = origin(deps.preview_url)
@@ -138,7 +137,6 @@ def check_result(ctx: RunContext[QADeps], output: QAResult) -> QAResult:
 
 
 def preview_browser(preview_url: str) -> PlaywrightBrowser[QADeps]:
-    """A browser that reaches only the preview host, for every request kind."""
     host = urlsplit(preview_url).hostname or ""
     return PlaywrightBrowser(
         policy=EgressPolicy(
