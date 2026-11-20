@@ -52,9 +52,10 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
         gh label create "pr-reviewer: new round" --description "Approve one pr-reviewer run with a new budget round"
         ```
     - To use another model, set the `PR_REVIEWER_MODEL` repo variable (for example `deepseek:deepseek-chat`) and add that provider's key as a secret. The workflow passes `DEEPSEEK_API_KEY`. For other providers, add their key to the `env` of the Review step.
-    - The PR's code is never installed or run. The workflow checks out the base branch into `tool/` and installs pr-reviewer from there, and checks out the PR head into `repo/` only as git data for the diff. So a PR that changes pr-reviewer is reviewed by the base branch's version. Both checkouts drop the token after the clone (`persist-credentials: false`).
+    - The PR's code and workflow file are never run. The workflow uses `pull_request_target`, so GitHub runs `pr-review.yml` from the base branch, and a PR cannot change the steps that get the secrets. It checks out the base branch into `tool/` and installs pr-reviewer from there, and checks out the PR head into `repo/` only as git data for the diff. So a PR that changes pr-reviewer is reviewed by the base branch's version. Both checkouts drop the token after the clone (`persist-credentials: false`).
     - The workflow uses `--engine harness`. On a large PR, the custom engine can reach the request limit and fail, but `WrapUpAtLimits` asks for a final answer at the last allowed request.
-    - The workflow uses `pull_request`, so PRs from forks get no review: they get no secrets.
+    - PRs from forks get no review: the job runs only when the PR head is in the same repository.
+    - A change to `pr-review.yml` takes effect only after it is merged into the base branch.
     - If the job fails during the agent run, the call is not counted, because the state is posted only with the result.
 
 ## Run
