@@ -1,14 +1,24 @@
+from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
 from pydantic_ai import AgentRunResult, UsageLimits
 from pydantic_ai.models import Model
+from pydantic_ai.usage import RunUsage
 
 from pr_reviewer.agent import build_prompt, reviewer
 from pr_reviewer.bundle import build_bundle, policy_base
 from pr_reviewer.github import post_review, read_pr_state, review_payload
 from pr_reviewer.harness_agent import harness_reviewer, policy_workspace
-from pr_reviewer.models import Current, ReviewDeps, ReviewOutcome, ReviewResult
+from pr_reviewer.models import (
+    Bundle,
+    CallPlan,
+    Current,
+    ReviewDeps,
+    ReviewOutcome,
+    ReviewResult,
+    ReviewState,
+)
 from pr_reviewer.state import (
     load_state,
     plan_call,
@@ -41,6 +51,35 @@ def run_reviewer(
     )
 
 
+def _reserve_and_run(
+    repo: Path,
+    path: Path,
+    state: ReviewState,
+    plan: CallPlan,
+    bundle: Bundle,
+    model: Model | str,
+    engine: Engine,
+) -> tuple[ReviewState, AgentRunResult[ReviewResult]]:
+    """Spend the call before it runs, so a crash still counts against the budget."""
+    reserved = (
+        {"verify_used": True}
+        if plan.kind == "verify"
+        else {"calls": plan.number}
+    )
+    state = state.model_copy(update=reserved)
+    save_state(path, state)
+
+    with policy_base(repo, bundle.base_sha) as base:
+        deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
+        result = run_reviewer(
+            engine,
+            build_prompt(bundle, verify=plan.kind == "verify"),
+            model,
+            deps,
+        )
+    return state, result
+
+
 def review(
     repo: Path,
     base_ref: str,
@@ -63,31 +102,23 @@ def review(
         else load_state(path, new_round)
     )
     plan = plan_call(state, has_pr=pr is not None)
+    if model:
+        label = model if isinstance(model, str) else model.model_name
+        plan = replace(plan, model=label)
     bundle = build_bundle(repo, base_ref, task, pr, state.findings)
 
-    reserved = (
-        {"verify_used": True}
-        if plan.kind == "verify"
-        else {"calls": plan.number}
-    )
-    state = state.model_copy(update=reserved)
-    save_state(path, state)
-
-    with policy_base(repo, bundle.base_sha) as base:
-        deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
-        result = run_reviewer(
-            engine,
-            build_prompt(bundle, verify=plan.kind == "verify"),
-            model or plan.model,
-            deps,
+    if bundle.diff.strip():
+        state, result = _reserve_and_run(
+            repo, path, state, plan, bundle, model or plan.model, engine
         )
+        output, usage = result.output, result.usage
+    else:
+        output, usage = Current(sha=bundle.head_sha), RunUsage()
 
-    findings = (
-        [] if isinstance(result.output, Current) else result.output.findings
-    )
+    findings = [] if isinstance(output, Current) else output.findings
     state = state.model_copy(update={"findings": findings})
     save_state(path, state)
-    outcome = ReviewOutcome(plan, result.output, result.usage)
+    outcome = ReviewOutcome(plan, output, usage)
     if target:
         payload = review_payload(outcome, state, bundle.head_sha, bundle.diff)
         post_review(repo, target, payload)

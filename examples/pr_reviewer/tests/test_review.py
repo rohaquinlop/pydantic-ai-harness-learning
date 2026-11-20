@@ -45,6 +45,7 @@ def test_round_runs_three_reviews_then_verify_then_stops(
         ("review", 3),
         ("verify", 4),
     ]
+    assert all(o.plan.model.startswith("function:") for o, _ in calls)
     assert ["<prior-findings>" in p for _, p in calls] == [
         False,
         True,
@@ -81,3 +82,13 @@ def test_state_in_git_dir_and_worktree_removed(
     assert path.parent.parent.name == ".git"
     assert path.name == "feat__x.json"
     assert len(run(demo_repo, "git", "worktree", "list").splitlines()) == 1
+
+
+def test_empty_diff_is_current_without_a_model_call(demo_repo: Path) -> None:
+    script = Script([])
+    outcome = review(demo_repo, "HEAD", None, None, False, script.model())
+
+    assert outcome.output == Current(sha=head(demo_repo))
+    assert script.prompts == []
+    state = load_state(state_path(demo_repo), new_round=False)
+    assert (state.calls, state.findings) == (0, [])
