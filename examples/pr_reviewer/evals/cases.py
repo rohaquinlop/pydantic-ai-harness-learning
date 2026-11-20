@@ -14,7 +14,7 @@ class RepoCase(BaseModel):
     head: dict[str, str]
 
 
-def _commit(repo: Path, files: dict[str, str], message: str) -> None:
+def commit(repo: Path, files: dict[str, str], message: str) -> None:
     for name, content in files.items():
         (repo / name).write_text(content)
     run(repo, "git", "add", ".")
@@ -27,9 +27,9 @@ def build_repo(case: RepoCase, repo: Path, branch: str = "candidate") -> Path:
     run(repo, "git", "init", "-q", "-b", "main")
     run(repo, "git", "config", "user.email", "eval@example.com")
     run(repo, "git", "config", "user.name", "eval")
-    _commit(repo, case.base, "base")
+    commit(repo, case.base, "base")
     run(repo, "git", "switch", "-qc", branch)
-    _commit(repo, case.head, "candidate")
+    commit(repo, case.head, "candidate")
     return repo
 
 
