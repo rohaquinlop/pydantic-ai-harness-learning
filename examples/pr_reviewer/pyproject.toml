@@ -1,0 +1,20 @@
+[project]
+name = "pr-reviewer"
+version = "0.1.0"
+description = "A fresh, read-only PR reviewer built with pydantic-ai, modeled on shepherd's reviewer."
+readme = "README.md"
+authors = [
+    { name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic-ai-harness==0.71.0",
+    "pydantic-ai-slim[anthropic]==2.71.0",
+]
+
+[project.scripts]
+pr-reviewer = "pr_reviewer:main"
+
+[build-system]
+requires = ["uv_build>=0.10.3,<0.11.0"]
+build-backend = "uv_build"

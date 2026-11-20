@@ -1,0 +1,32 @@
+[project]
+name = "pydantic-ai-learning"
+version = "0.1.0"
+description = "Examples, experiments, and learnings with pydantic-ai."
+readme = "README.md"
+authors = [
+    { name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pr-reviewer",
+]
+
+[tool.uv.workspace]
+members = ["examples/*"]
+
+[tool.uv.sources]
+pr-reviewer = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "complexipy>=9.0.0",
+    "pydantic-evals>=2.71.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+    "ty>=0.0.107",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["examples"]
+addopts = ["--import-mode=importlib"]
+pythonpath = ["."]
