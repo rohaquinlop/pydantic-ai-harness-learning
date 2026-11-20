@@ -36,12 +36,21 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
     uv run -m examples.pr_reviewer.evals.review_evals --engine harness --repeat 3
     ```
 
-8. GitHub integration: `--post` (needs `--pr`) posts the result as one PR review (`github.py`), and `.github/workflows/pr-review.yml` runs it on every push to a PR.
+8. GitHub integration: `--post` (needs `--pr`) posts the result as one PR review (`github.py`), and `.github/workflows/pr-review.yml` runs it on a PR after a maintainer approves the run.
+    - Approval gate: a review runs only when someone adds the `pr-reviewer: run` label (or `pr-reviewer: new round`, which also resets the budget). Only people with triage access or more can add labels. The first step removes the label, so each run needs a new approval, and pushes alone never spend tokens. The run reviews the head SHA at the time of the label, so a push made after the approval is not reviewed.
     - `Findings` → `REQUEST_CHANGES` with one inline comment per finding. A finding on a line that the diff does not show goes in the review body, because GitHub rejects inline comments there.
     - `Current` → a `COMMENT` with `current at <sha>`. `GITHUB_TOKEN` cannot approve unless a repo setting allows it.
     - Before each post, the bot's open change requests are dismissed.
     - The review budget lives in a hidden, base64-encoded `<!-- pr-reviewer-state: ... -->` marker in the newest bot review, because the runner's `.git/` is lost after each job. Only reviews by `github-actions[bot]` (`BOT_LOGIN`) count, so a PR author cannot forge the state.
-    - Setup: add the `ANTHROPIC_API_KEY` repo secret. Add the `pr-reviewer: new round` label to a PR to start a new round.
+    - Setup: add the `ANTHROPIC_API_KEY` repo secret, and create the two labels:
+
+        ```bash
+        gh label create "pr-reviewer: run" --description "Approve one pr-reviewer run"
+        ```
+
+        ```bash
+        gh label create "pr-reviewer: new round" --description "Approve one pr-reviewer run with a new budget round"
+        ```
     - To use another model, set the `PR_REVIEWER_MODEL` repo variable (for example `deepseek:deepseek-chat`) and add that provider's key as a secret. The workflow passes `DEEPSEEK_API_KEY`. For other providers, add their key to the `env` of the Review step.
     - The workflow uses `pull_request`, not `pull_request_target`, because `uv sync` builds the PR's code. So PRs from forks get no review: they get no secrets.
     - If the job fails during the agent run, the call is not counted, because the state is posted only with the result.
