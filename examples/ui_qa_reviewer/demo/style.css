@@ -25,3 +25,7 @@ button {
   background: #2457d6;
   color: #fff;
 }
+
+#message {
+  overflow-wrap: anywhere;
+}
