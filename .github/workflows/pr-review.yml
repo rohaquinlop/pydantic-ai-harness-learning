@@ -27,14 +27,24 @@ jobs:
         run: >-
           gh api --method DELETE
           "repos/${{ github.repository }}/issues/$PR/labels/$(jq -rn --arg l "$LABEL" '$l|@uri')"
-      - uses: actions/checkout@v4
+      - name: Check out the reviewer from the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: tool
+          persist-credentials: false
+      - name: Check out the PR as data only
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          path: repo
           fetch-depth: 0
           persist-credentials: false
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
+        working-directory: tool
       - name: Review
+        working-directory: tool
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -45,6 +55,7 @@ jobs:
           MODEL: ${{ vars.PR_REVIEWER_MODEL && format('--model={0}', vars.PR_REVIEWER_MODEL) || '' }}
         run: >-
           uv run pr-reviewer
+          --repo ../repo
           --base "origin/$BASE"
           --pr "$PR"
           --post $NEW_ROUND $MODEL
