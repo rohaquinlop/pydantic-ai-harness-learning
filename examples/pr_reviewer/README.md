@@ -42,6 +42,7 @@ A fresh, read-only PR reviewer built with pydantic-ai. It follows the reviewer i
     - Before each post, the bot's open change requests are dismissed.
     - The review budget lives in a hidden, base64-encoded `<!-- pr-reviewer-state: ... -->` marker in the newest bot review, because the runner's `.git/` is lost after each job. Only reviews by `github-actions[bot]` (`BOT_LOGIN`) count, so a PR author cannot forge the state.
     - Setup: add the `ANTHROPIC_API_KEY` repo secret. Add the `pr-reviewer: new round` label to a PR to start a new round.
+    - To use another model, set the `PR_REVIEWER_MODEL` repo variable (for example `deepseek:deepseek-chat`) and add that provider's key as a secret. The workflow passes `DEEPSEEK_API_KEY`. For other providers, add their key to the `env` of the Review step.
     - The workflow uses `pull_request`, not `pull_request_target`, because `uv sync` builds the PR's code. So PRs from forks get no review: they get no secrets.
     - If the job fails during the agent run, the call is not counted, because the state is posted only with the result.
 
@@ -58,5 +59,19 @@ git fetch && uv run pr-reviewer --repo <repo> --base origin/main --task "<task c
 ```
 
 Fix the findings, commit, and run it again for the next call. Use `--pr <N>` to read the task and discussion from a PR, and `--new-round` to reset the budget.
+
+### Other providers
+
+The default models are Claude models. To use another provider, pass `--model` to the CLI or to the evals. The `openai` extra is installed, so DeepSeek works:
+
+```bash
+export DEEPSEEK_API_KEY=...
+```
+
+```bash
+uv run -m examples.pr_reviewer.evals.review_evals --model deepseek:deepseek-chat
+```
+
+For other providers, add their extra to `pydantic-ai-slim` in `pyproject.toml`.
 
 `--model test` runs offline, but `TestModel` invents the file name `a`, so the output validator rejects it and the run fails. Offline tests with a scripted `FunctionModel` come in step 5.
