@@ -24,15 +24,18 @@ def demo_files() -> dict[str, str]:
     return {p.name: p.read_text() for p in sorted(DEMO.iterdir())}
 
 
+PLANTS = [
+    ("index.html", '<label for="email">Email</label>\n        ', ""),
+    ("app.js", 'getElementById("message")', 'getElementById("msg")'),
+]
+
+
 def planted_files() -> dict[str, str]:
     """The demo with two bugs a desktop browser can see."""
     files = demo_files()
-    files["index.html"] = files["index.html"].replace(
-        '<label for="email">Email</label>\n        ', ""
-    )
-    files["app.js"] = files["app.js"].replace(
-        'getElementById("message")', 'getElementById("msg")'
-    )
+    for name, old, new in PLANTS:
+        assert old in files[name], f"demo changed: {old!r} not in {name}"
+        files[name] = files[name].replace(old, new)
     return files
 
 
