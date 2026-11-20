@@ -22,6 +22,7 @@ from examples.ui_qa_reviewer.tests.helpers import (
         "http://127.0.0.1:9000/",
         "https://127.0.0.1:8000/",
         "http://127.0.0.1:bad/",
+        "http://127.0.0.1:8000[/",
     ],
 )
 def test_rejects_off_origin_finding(url: str) -> None:
@@ -87,18 +88,20 @@ def test_prompt_contents() -> None:
 
 
 @pytest.mark.parametrize(
-    ("url", "blocks_private"),
+    ("url", "host", "blocks_private"),
     [
-        ("http://localhost:5173", False),
-        ("http://127.0.0.1:8000", False),
-        ("https://preview.example.com", True),
+        ("http://localhost:5173", "localhost", False),
+        ("http://127.0.0.1:8000", "127.0.0.1", False),
+        ("https://preview.example.com", "preview.example.com", True),
     ],
 )
-def test_browser_reaches_only_preview(url: str, blocks_private: bool) -> None:
+def test_browser_reaches_only_preview(
+    url: str, host: str, blocks_private: bool
+) -> None:
     policy = preview_browser(url).policy
 
     assert policy is not None
-    assert policy.allowed_domains == [url.split("//")[1].split(":")[0]]
+    assert policy.allowed_domains == [host]
     assert policy.allowlist_reach == {
         "navigation",
         "subframe",
