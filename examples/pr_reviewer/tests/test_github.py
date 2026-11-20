@@ -8,6 +8,7 @@ from pr_reviewer import bundle, github
 from pr_reviewer.github import commentable_lines, read_pr_state, review_payload
 from pr_reviewer.models import CallPlan, Findings, ReviewOutcome, ReviewState
 from pr_reviewer.review import review
+from pr_reviewer.tools import changed_files
 from pydantic_ai.usage import RunUsage
 
 from examples.pr_reviewer.tests.helpers import (
@@ -73,6 +74,15 @@ def post_once(repo: Path, reply: Call) -> ReviewOutcome:
 
 def test_commentable_lines_are_new_side_hunk_lines() -> None:
     assert commentable_lines(DIFF) == {"calc.py": {1, 2}}
+
+
+def test_content_lines_that_look_like_headers_stay_content() -> None:
+    diff = (
+        "diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n"
+        "@@ -1 +1,3 @@\n x\n+++ b/y\n+z\n"
+    )
+    assert commentable_lines(diff) == {"a.py": {1, 2, 3}}
+    assert changed_files(diff) == {"a.py"}
 
 
 def test_findings_outside_the_diff_go_in_the_body(gh: FakeGh) -> None:

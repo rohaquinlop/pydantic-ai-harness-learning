@@ -14,8 +14,13 @@ MAX_GREP_FILE_BYTES = 1_000_000
 
 def changed_files(diff: str) -> frozenset[str]:
     files: set[str] = set()
+    in_hunk = False
     for line in diff.splitlines():
-        if line.startswith(("--- a/", "+++ b/")):
+        if line.startswith("diff --git "):
+            in_hunk = False
+        elif line.startswith("@@ "):
+            in_hunk = True
+        elif not in_hunk and line.startswith(("--- a/", "+++ b/")):
             files.add(line[6:].split("\t")[0])
     return frozenset(files)
 
