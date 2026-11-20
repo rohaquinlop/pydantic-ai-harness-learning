@@ -58,4 +58,5 @@ jobs:
           --repo ../repo
           --base "origin/$BASE"
           --pr "$PR"
+          --engine harness
           --post $NEW_ROUND $MODEL
