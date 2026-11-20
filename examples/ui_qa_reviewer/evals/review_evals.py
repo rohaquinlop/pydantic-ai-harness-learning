@@ -58,7 +58,10 @@ dataset = Dataset[RepoCase, QAResult, Bugs](
 
 
 def make_task(model: Model | str | None) -> Callable[[RepoCase], QAResult]:
-    """One fresh repo and one QA run per case. Only the head files are served, not `.git/`."""
+    """One fresh repo and one QA run per case.
+
+    Only the head files are served, not `.git/`.
+    """
 
     def review_case(case: RepoCase) -> QAResult:
         with tempfile.TemporaryDirectory(prefix="ui-qa-eval-") as tmp:

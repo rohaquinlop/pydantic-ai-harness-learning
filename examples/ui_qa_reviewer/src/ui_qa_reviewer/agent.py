@@ -94,7 +94,8 @@ def _has_image_return(parts: Sequence[ModelRequestPart]) -> bool:
     """A browser tool returned an image.
 
     pydantic-ai sends a `ToolReturn`'s content as a `UserPromptPart` next to the
-    `ToolReturnPart`, so both must be in the same request. An error string has no image.
+    `ToolReturnPart`, so both must be in the same request. An error string has
+    no image.
     """
     returned = any(
         isinstance(p, ToolReturnPart) and p.tool_name in IMAGE_TOOLS
