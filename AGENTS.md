@@ -86,6 +86,10 @@ uv run --env-file .env -m examples.pr_reviewer.evals.review_evals --model deepse
 uv run --env-file .env -m examples.ui_qa_reviewer.evals.review_evals --model deepseek:deepseek-flash
 ```
 
+```bash
+uv run --env-file .env -m examples.incident_triager.evals.triage_evals --model deepseek:deepseek-chat
+```
+
 - Flags:
   - `--model`: default is Haiku for `pr_reviewer` and Sonnet for `ui_qa_reviewer`.
   - `--repeat N`: runs per case.
