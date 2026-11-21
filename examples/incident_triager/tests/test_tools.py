@@ -1,3 +1,4 @@
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -200,6 +201,15 @@ def test_git_log_caps_the_commit_list(
             tools.list_deploys,
             "deploys.json item 0: bad at",
         ),
+        (
+            "deploys.json",
+            (
+                '[{"id": "d-1", "at": null, "service": "s", "kind": "code", '
+                '"version": "v1", "commit": "abcd", "description": "x"}]'
+            ),
+            tools.list_deploys,
+            "deploys.json item 0: bad at",
+        ),
         ("deploys.json", "{not json", tools.list_deploys, "deploys.json: "),
         ("deploys.json", "5", tools.list_deploys, "expected a JSON list"),
         ("deploys.json", "[null]", tools.list_deploys, "item 0: expected"),
@@ -225,3 +235,19 @@ def test_git_ignores_a_repo_dir_without_git(odd: Path) -> None:
     """Without .git, git would search parent dirs outside the bundle."""
     (odd / "repo").mkdir()
     assert call(odd, tools.git_log) == "this bundle has no repo/"
+    assert "repo: no" in call(odd, tools.list_sources)
+
+
+def test_git_stays_inside_the_bundle(odd: Path) -> None:
+    """A broken repo/.git must not let git find a repo around the bundle."""
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    subprocess.run([*git, "init", "-q"], cwd=odd, check=True)
+    subprocess.run(
+        [*git, "-c", "commit.gpgsign=false", "commit", "-q"]
+        + ["--allow-empty", "-m", "outside"],
+        cwd=odd,
+        check=True,
+    )
+    (odd / "repo" / ".git").mkdir(parents=True)
+    with pytest.raises(ModelRetry, match="git failed"):
+        call(odd, tools.git_log)

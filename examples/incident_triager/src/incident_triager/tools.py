@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 from collections import Counter
@@ -124,7 +125,7 @@ def list_sources(ctx: RunContext[TriageDeps]) -> str:
         f"  metric:{name}: {n} points" for name, n in sorted(counts.items())
     ]
     lines.append(f"deploys: {len(load_deploys(bundle))}")
-    lines.append(f"repo: {'yes' if (bundle / 'repo').is_dir() else 'no'}")
+    lines.append(f"repo: {'yes' if _has_repo(bundle) else 'no'}")
     return "\n".join(lines)
 
 
@@ -285,14 +286,22 @@ def list_deploys(
     return "\n".join(_cut(x) for x in rows) or "no deploys in this window"
 
 
+def _has_repo(bundle: Path) -> bool:
+    return (bundle / "repo" / ".git").exists()
+
+
 def _git(ctx: RunContext[TriageDeps], *args: str) -> str | None:
-    repo = _bundle(ctx) / "repo"
-    if not (repo / ".git").exists():
+    bundle = _bundle(ctx)
+    if not _has_repo(bundle):
         return None
     try:
         return subprocess.run(
             ["git", *args],
-            cwd=repo,
+            cwd=bundle / "repo",
+            env={
+                **os.environ,
+                "GIT_CEILING_DIRECTORIES": str(bundle.resolve()),
+            },
             check=True,
             capture_output=True,
             encoding="utf-8",

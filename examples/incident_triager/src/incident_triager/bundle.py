@@ -103,7 +103,7 @@ def _check_deploy(n: int, deploy: Any) -> None:
         raise BundleError(f"deploys.json item {n}: missing {missing}")
     try:
         parse_ts(deploy["at"])
-    except (TypeError, ValueError) as e:
+    except (AttributeError, TypeError, ValueError) as e:
         raise BundleError(f"deploys.json item {n}: bad at: {e}") from e
 
 
