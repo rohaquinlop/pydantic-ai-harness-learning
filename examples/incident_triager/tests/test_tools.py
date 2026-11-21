@@ -1,3 +1,4 @@
+import json
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -5,7 +6,11 @@ from typing import Any
 
 import pytest
 from incident_triager import tools
-from incident_triager.bundle import BundleError, load_deploys
+from incident_triager.bundle import (
+    DEPLOY_KEYS,
+    BundleError,
+    load_deploys,
+)
 from incident_triager.models import TriageDeps
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.models.test import TestModel
@@ -183,6 +188,11 @@ def test_git_log_caps_the_commit_list(
     assert lines[2] == "[more commits: narrow the window or the path]"
 
 
+def deploy_at(at: str | None) -> str:
+    deploy = dict.fromkeys(DEPLOY_KEYS, "x") | {"at": at}
+    return json.dumps([deploy])
+
+
 @pytest.mark.parametrize(
     ("file", "content", "tool", "message"),
     [
@@ -192,23 +202,14 @@ def test_git_log_caps_the_commit_list(
             tools.list_deploys,
             "deploys.json item 0: missing",
         ),
-        (
-            "deploys.json",
+        *(
             (
-                '[{"id": "d-1", "at": "soon", "service": "s", "kind": "code", '
-                '"version": "v1", "commit": "abcd", "description": "x"}]'
-            ),
-            tools.list_deploys,
-            "deploys.json item 0: bad at",
-        ),
-        (
-            "deploys.json",
-            (
-                '[{"id": "d-1", "at": null, "service": "s", "kind": "code", '
-                '"version": "v1", "commit": "abcd", "description": "x"}]'
-            ),
-            tools.list_deploys,
-            "deploys.json item 0: bad at",
+                "deploys.json",
+                deploy_at(at),
+                tools.list_deploys,
+                "item 0: bad at",
+            )
+            for at in ("soon", None)
         ),
         ("deploys.json", "{not json", tools.list_deploys, "deploys.json: "),
         ("deploys.json", "5", tools.list_deploys, "expected a JSON list"),
