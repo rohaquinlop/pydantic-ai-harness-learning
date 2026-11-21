@@ -106,10 +106,10 @@ def call(bundle: Path, tool: Tool, **args: Any) -> str:
             "odd",
             tools.search_logs,
             {"pattern": ".", "since": "2026-11-20T09:58:00+00:00"},
-            "[end: 3 matches]\n[skipped 2 unparseable lines]",
+            "[end: 3 matches]\n[skipped 3 unparseable lines]",
         ),
         ("odd", tools.search_logs, {"pattern": "x{400}"}, "[+127 chars]"),
-        ("odd", tools.count_logs, {"pattern": "."}, "[skipped 2 unparseable"),
+        ("odd", tools.count_logs, {"pattern": "."}, "[skipped 3 unparseable"),
         (
             "odd",
             tools.count_logs,
@@ -201,6 +201,9 @@ def test_git_log_caps_the_commit_list(
             "deploys.json item 0: bad at",
         ),
         ("deploys.json", "{not json", tools.list_deploys, "deploys.json: "),
+        ("deploys.json", "5", tools.list_deploys, "expected a JSON list"),
+        ("deploys.json", "[null]", tools.list_deploys, "item 0: expected"),
+        ("alert.json", "[1]", tools.read_alert, "expected a JSON object"),
         (
             "metrics.csv",
             "timestamp,metric,value\n2026-11-20T09:00:00Z,cpu_pct,high\n",
@@ -216,3 +219,9 @@ def test_bad_bundle_data_raises_bundle_error(
     args = {"name": "cpu_pct"} if tool is tools.query_metric else {}
     with pytest.raises(BundleError, match=message):
         call(odd, tool, **args)
+
+
+def test_git_ignores_a_repo_dir_without_git(odd: Path) -> None:
+    """Without .git, git would search parent dirs outside the bundle."""
+    (odd / "repo").mkdir()
+    assert call(odd, tools.git_log) == "this bundle has no repo/"

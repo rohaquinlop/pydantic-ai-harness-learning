@@ -14,6 +14,7 @@ ODD_LOG = (
     f"2026-11-20T10:01:00Z ERROR {'x' * 400}\n"
     "2026-11-20 10:02:00 ERROR space timestamp\n"
     "2026-11-20 ERROR date only\n"
+    "2026-11-20\n"
 )
 
 

@@ -31,7 +31,9 @@ def _line_ts(text: str) -> datetime | None:
     `2026-11-20 09:00:00`. A date with no time is not a timestamp."""
     parts = text.split(" ", 2)
     stamp = parts[0]
-    if "T" not in stamp and len(parts) > 1:
+    if "T" not in stamp:
+        if len(parts) < 2:
+            return None
         stamp = f"{stamp}T{parts[1]}"
     try:
         return parse_ts(stamp)
@@ -88,10 +90,15 @@ def _json(path: Path) -> Any:
 
 
 def load_alert(bundle: Path) -> dict[str, Any]:
-    return _json(bundle / "alert.json")
+    alert = _json(bundle / "alert.json")
+    if not isinstance(alert, dict):
+        raise BundleError("alert.json: expected a JSON object")
+    return alert
 
 
-def _check_deploy(n: int, deploy: dict[str, Any]) -> None:
+def _check_deploy(n: int, deploy: Any) -> None:
+    if not isinstance(deploy, dict):
+        raise BundleError(f"deploys.json item {n}: expected an object")
     if missing := [k for k in DEPLOY_KEYS if k not in deploy]:
         raise BundleError(f"deploys.json item {n}: missing {missing}")
     try:
@@ -103,6 +110,8 @@ def _check_deploy(n: int, deploy: dict[str, Any]) -> None:
 def load_deploys(bundle: Path) -> list[dict[str, Any]]:
     path = bundle / "deploys.json"
     deploys = _json(path) if path.is_file() else []
+    if not isinstance(deploys, list):
+        raise BundleError("deploys.json: expected a JSON list")
     for n, deploy in enumerate(deploys):
         _check_deploy(n, deploy)
     return deploys

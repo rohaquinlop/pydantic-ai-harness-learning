@@ -142,7 +142,15 @@ def _build_repo(commits: list[Commit], repo: Path) -> list[str]:
         for name, content in c.files.items():
             (repo / name).write_text(content, encoding="utf-8")
         _git(repo, "add", ".")
-        _git(repo, "commit", "-qm", c.message, when=at(c.at))
+        _git(
+            repo,
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
+            c.message,
+            when=at(c.at),
+        )
         shas.append(_git(repo, "rev-parse", "--short", "HEAD"))
     return shas
 

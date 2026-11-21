@@ -6,10 +6,12 @@ from incident_triager import main
 from incident_triager.agent import triager
 
 from examples.incident_triager.tests.helpers import final, hypothesis
-from examples.pr_reviewer.tests.helpers import Script
+from examples.pr_reviewer.tests.helpers import Call, Script
 
 
-def run_cli(bundle: Path, turns: list, monkeypatch: pytest.MonkeyPatch) -> None:
+def run_cli(
+    bundle: Path, turns: list[list[Call]], monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(
         sys, "argv", ["incident-triager", "--bundle", str(bundle)]
     )
@@ -59,3 +61,11 @@ def test_bad_bundle_exits_with_a_message(
     turns = [[("list_deploys", {})]]
     with pytest.raises(SystemExit, match="bad bundle: deploys.json item 0"):
         run_cli(odd, turns, monkeypatch)
+
+
+def test_alert_that_is_not_an_object_exits_with_a_message(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "alert.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(SystemExit, match="bad bundle: alert.json"):
+        run_cli(tmp_path, [], monkeypatch)

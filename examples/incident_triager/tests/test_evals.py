@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from incident_triager.bundle import load_deploys
+from incident_triager.models import Triage
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -11,6 +12,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_evals import Case
 
 from examples.incident_triager.evals.cases import (
     CASES,
@@ -22,7 +24,7 @@ from examples.incident_triager.evals.review_evals import run_evals
 from examples.incident_triager.tests.helpers import final, hypothesis
 
 Reply = Callable[[PlantedCause], list[dict[str, Any]]]
-DECOY = hypothesis("capacity", "metric:requests_per_s")
+CAPACITY_GUESS = hypothesis("capacity", "metric:requests_per_s")
 CAUSES = {c.inputs.title: c.metadata for c in CASES if c.metadata}
 
 
@@ -50,7 +52,9 @@ def model_from(reply: Reply) -> FunctionModel:
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.name)
-def test_case_builds_and_lists_its_key_refs(case: Any, tmp_path: Path) -> None:
+def test_case_builds_and_lists_its_key_refs(
+    case: Case[IncidentCase, Triage, PlantedCause], tmp_path: Path
+) -> None:
     inputs: IncidentCase = case.inputs
     bundle = build_bundle(inputs, tmp_path / "b")
     deploys = load_deploys(bundle)
@@ -61,6 +65,7 @@ def test_case_builds_and_lists_its_key_refs(case: Any, tmp_path: Path) -> None:
         + [f"metric:{m}" for m in inputs.metrics]
         + [f"logs/{name}" for name in inputs.logs]
     )
+    assert case.metadata
     assert all(key in listed for key in case.metadata.key_refs)
 
 
@@ -78,12 +83,12 @@ def test_case_builds_and_lists_its_key_refs(case: Any, tmp_path: Path) -> None:
             id="last-accepted-category",
         ),
         pytest.param(
-            lambda cause: [DECOY, right(cause)],
+            lambda cause: [CAPACITY_GUESS, right(cause)],
             {c.name: (c.name == "traffic_spike", True, 2) for c in CASES},
             id="right-second",
         ),
         pytest.param(
-            lambda cause: [DECOY],
+            lambda cause: [CAPACITY_GUESS],
             {c.name: (c.name == "traffic_spike",) * 2 + (1,) for c in CASES},
             id="decoy-only",
         ),

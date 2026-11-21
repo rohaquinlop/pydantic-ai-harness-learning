@@ -23,7 +23,8 @@ MISFILED = {"source": "log", "ref": "deploy:d-102", "detail": "seen"}
         ("logs/api.log:120: ERROR", "logs/api.log:120", True),
         ("logs/payments.log:7: WARN", "logs/payments.log", True),
         ("metric:memory_mb_max\n", "metric:memory_mb", False),
-        ("see commit:adfe765.", "commit:adfe765", False),
+        ("see commit:adfe765.", "commit:adfe765", True),
+        ("logs/api.log.1:3: x", "logs/api.log", False),
         ("xdeploy:d-1 ", "deploy:d-1", False),
     ],
 )

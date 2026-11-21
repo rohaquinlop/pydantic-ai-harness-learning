@@ -103,7 +103,8 @@ def _skipped_note(skipped: int) -> list[str]:
 
 def read_alert(ctx: RunContext[TriageDeps]) -> str:
     """Read the alert that opened the incident. Cite it as `alert`."""
-    return "alert\n" + json.dumps(load_alert(_bundle(ctx)), indent=2)
+    text = json.dumps(load_alert(_bundle(ctx)), indent=2)
+    return "\n".join(["alert", *(_cut(x) for x in text.splitlines())])
 
 
 def list_sources(ctx: RunContext[TriageDeps]) -> str:
@@ -281,12 +282,12 @@ def list_deploys(
         for d in load_deploys(_bundle(ctx))
         if _in_window(parse_ts(d["at"]), start, end)
     ]
-    return "\n".join(rows) or "no deploys in this window"
+    return "\n".join(_cut(x) for x in rows) or "no deploys in this window"
 
 
 def _git(ctx: RunContext[TriageDeps], *args: str) -> str | None:
     repo = _bundle(ctx) / "repo"
-    if not repo.is_dir():
+    if not (repo / ".git").exists():
         return None
     try:
         return subprocess.run(
