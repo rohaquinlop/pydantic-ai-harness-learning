@@ -51,7 +51,7 @@ uv run complexipy examples
 ## Tests
 
 - Tests are offline. Each `conftest.py` sets `models.ALLOW_MODEL_REQUESTS = False`. Never remove it, and never make a test call a real model.
-- Use the scripted `FunctionModel` in `tests/helpers.py` or `TestModel` with `agent.override(model=...)`. `RepoContext` makes streamed requests, so a `FunctionModel` for the harness engine needs a `stream_function`.
+- Use the scripted `FunctionModel` in `tests/helpers.py` or `TestModel`. `pr_reviewer` has module-level agents, so swap the model with `agent.override(model=...)`. `ui_qa_reviewer` builds its agent with `build_agent(...)`, so pass `model=` to the run. `RepoContext` makes streamed requests, so a `FunctionModel` for the harness engine needs a `stream_function`.
 - `ui_qa_reviewer` tests use a stub browser. They do not need Chromium.
 - Use `pytest.mark.parametrize` for near-identical cases. Put shared setup in fixtures or `helpers.py`. Do not copy setup between tests.
 - Use `pathlib`. Tests must not depend on POSIX-only behavior.
