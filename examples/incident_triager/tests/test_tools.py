@@ -156,3 +156,11 @@ def test_git_show_prints_the_deployed_commit(incident: Path) -> None:
     out = call(incident, tools.git_show, sha=f"commit:{sha}")
     assert out.startswith(f"commit:{sha} ")
     assert "+POOL_SIZE = 5" in out
+
+
+def test_git_show_clamps_a_negative_max_lines(incident: Path) -> None:
+    sha = load_deploys(incident)[1]["commit"]
+    out = call(incident, tools.git_show, sha=sha, max_lines=-5)
+    first, footer = out.splitlines()
+    assert first.startswith(f"commit:{sha} ")
+    assert footer.endswith(" more lines]")
