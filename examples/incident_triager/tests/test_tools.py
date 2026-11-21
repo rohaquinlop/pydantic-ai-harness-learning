@@ -232,19 +232,19 @@ def test_bad_bundle_data_raises_bundle_error(
         call(odd, tool, **args)
 
 
-def test_git_ignores_a_repo_dir_without_git(odd: Path) -> None:
-    """Without .git, git would search parent dirs outside the bundle."""
-    (odd / "repo").mkdir()
-    assert call(odd, tools.git_log) == tools.NO_REPO
-    assert "repo: no" in call(odd, tools.list_sources)
-
-
-def test_git_tools_report_a_missing_git(
-    incident: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("cause", ["no-dot-git", "no-git-binary"])
+def test_git_tools_need_a_repo_and_git(
+    cause: str, request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("PATH", "")
-    assert call(incident, tools.git_log) == tools.NO_REPO
-    assert "repo: no" in call(incident, tools.list_sources)
+    """Without .git, git would search parent dirs outside the bundle."""
+    if cause == "no-dot-git":
+        bundle: Path = request.getfixturevalue("odd")
+        (bundle / "repo").mkdir()
+    else:
+        bundle = request.getfixturevalue("incident")
+        monkeypatch.setenv("PATH", "")
+    assert call(bundle, tools.git_log) == tools.NO_REPO
+    assert "repo: no" in call(bundle, tools.list_sources)
 
 
 def test_git_stays_inside_the_bundle(odd: Path) -> None:
