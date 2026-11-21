@@ -15,16 +15,16 @@ An incident triager built with pydantic-ai. It reads a local incident bundle (th
     - Each tool prints refs in one format: `logs/api.log:120`, `metric:memory_mb`, `deploy:d-102`, `commit:a1b2c3d`.
 3. Hypothesis-then-check loop: the instructions tell the agent to orient (`read_alert`, `list_sources`), aggregate around the alert time, form 1 to 5 hypotheses, check each with the cheapest tool call, then rank. A deploy near the alert is not proof.
 4. Structured output: `Triage` with a summary and ranked `Hypothesis` items. Each item has a category (`code_change`, `config_change`, `dependency`, `capacity`, `resource_leak`), a confidence, evidence refs, a `check`, and a `refuted_if` condition.
-5. Grounding validator: `check_grounded` reads `ctx.messages` and raises `ModelRetry` when an evidence ref does not appear in a successful tool return of the same run. Refs match as whole tokens, so `deploy:d-10` does not match `deploy:d-102`. `alert` counts only after a `read_alert` call. A retry message can echo a bad ref, so retried returns never count. `output_retries=3`.
+5. Grounding validator: `check_grounded` reads `ctx.messages` and raises `ModelRetry` when an evidence ref does not appear in a successful tool return of the same run. Refs match as whole tokens, so `deploy:d-10` does not match `deploy:d-102`. `alert` counts only after a `read_alert` call. A retry message can echo a bad ref, so retried returns never count, and no tool echoes its arguments in a successful return. `retries={"tools": 3, "output": 3}`.
 6. Guards: paths stay inside `logs/` and `repo/`. A SHA must be 4 to 40 hex characters, `--since`/`--until` take parsed timestamps, and a pathspec goes after `--`. A bad regex, timestamp, metric, or SHA, or a git error, becomes a `ModelRetry` with a hint. Time-filtered tools skip lines without a timestamp and count them in the footer.
 7. Offline tests: `models.ALLOW_MODEL_REQUESTS = False`, the scripted `FunctionModel` from `pr_reviewer`'s tests, and the `bad_deploy` eval bundle as a fixture. Run `uv run pytest` from the repo root.
-8. Evals: `evals/cases.py` generates 5 incidents with a planted root cause. Each has thousands of noise log lines and a git repo with dated commits. Three cases have a deploy that did not cause the incident.
+8. Evals: `evals/cases.py` generates 5 incidents with a planted root cause. Each has thousands of noise log lines and a git repo with dated commits. Every case also has a deploy that did not cause the incident.
 
     | Case | Planted cause | Wrong lead |
     |---|---|---|
     | `bad_deploy` | a code deploy shrinks the DB pool | an earlier logging deploy |
     | `feature_flag` | a config deploy turns on a flag | a dependency bump |
-    | `upstream_outage` | the payment provider returns 503 | a CSS deploy 5 min earlier |
+    | `upstream_outage` | the payment provider returns 503 | a CSS deploy 5 min before the first error |
     | `traffic_spike` | requests per second triple | a log-level config change |
     | `memory_leak` | a template cache that never evicts, deployed 2 days ago | a typo fix 30 min ago |
 

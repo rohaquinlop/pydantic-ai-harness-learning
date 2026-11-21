@@ -91,7 +91,7 @@ uv run --env-file .env -m examples.incident_triager.evals.triage_evals --model d
 ```
 
 - Flags:
-  - `--model`: default is Haiku for `pr_reviewer` and Sonnet for `ui_qa_reviewer`.
+  - `--model`: default is Haiku for `pr_reviewer`, and Sonnet for `ui_qa_reviewer` and `incident_triager`.
   - `--repeat N`: runs per case.
   - `--max-concurrency N`: default 2.
   - `--engine custom|harness`: `pr_reviewer` only. Compare the two engines with the same model and `--repeat`.
