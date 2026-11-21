@@ -2,7 +2,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
-from pydantic_ai import AgentRunResult, UsageLimits
+from pydantic_ai import AgentRunResult, UsageLimits, capture_run_messages
+from pydantic_ai.exceptions import AgentRunError
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -80,14 +81,22 @@ def _reserve_and_run(
     state = state.model_copy(update=reserved)
     save_state(path, state)
 
-    with policy_base(repo, bundle.policy_sha) as base:
+    with (
+        policy_base(repo, bundle.policy_sha) as base,
+        capture_run_messages() as messages,
+    ):
         deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
-        result = run_reviewer(
-            engine,
-            build_prompt(bundle, verify=plan.kind == "verify"),
-            model,
-            deps,
-        )
+        try:
+            result = run_reviewer(
+                engine,
+                build_prompt(bundle, verify=plan.kind == "verify"),
+                model,
+                deps,
+            )
+        except AgentRunError as e:
+            for line in _retries(messages):
+                e.add_note(f"retry: {line}")
+            raise
     return state, result
 
 
