@@ -8,6 +8,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "incident-triager",
     "pr-reviewer",
     "pydantic-ai-learning",
     "ui-qa-reviewer",
@@ -383,6 +384,17 @@ wheels = [
 ]
 
 [[package]]
+name = "incident-triager"
+version = "0.1.0"
+source = { editable = "examples/incident_triager" }
+dependencies = [
+    { name = "pydantic-ai-slim", extra = ["anthropic", "openai"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic-ai-slim", extras = ["anthropic", "openai"], specifier = "==2.71.0" }]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -622,6 +634,7 @@ name = "pydantic-ai-learning"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "incident-triager" },
     { name = "pr-reviewer" },
     { name = "ui-qa-reviewer" },
 ]
@@ -637,6 +650,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "incident-triager", editable = "examples/incident_triager" },
     { name = "pr-reviewer", editable = "examples/pr_reviewer" },
     { name = "ui-qa-reviewer", editable = "examples/ui_qa_reviewer" },
 ]

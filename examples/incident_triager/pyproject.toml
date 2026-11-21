@@ -1,0 +1,19 @@
+[project]
+name = "incident-triager"
+version = "0.1.0"
+description = "An incident triager built with pydantic-ai: ranked, evidence-grounded root-cause hypotheses from a local incident bundle."
+readme = "README.md"
+authors = [
+    { name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic-ai-slim[anthropic,openai]==2.71.0",
+]
+
+[project.scripts]
+incident-triager = "incident_triager:main"
+
+[build-system]
+requires = ["uv_build>=0.10.3,<0.11.0"]
+build-backend = "uv_build"
