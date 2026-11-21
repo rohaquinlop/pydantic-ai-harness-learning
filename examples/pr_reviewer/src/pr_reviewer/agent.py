@@ -65,8 +65,8 @@ def _placeholder_fields(findings: list[Finding]) -> list[str]:
     return [
         f"{f.file}:{f.line} {name}"
         for f in findings
-        for name in ("problem", "fix")
-        if _is_placeholder(getattr(f, name))
+        for name, text in (("problem", f.problem), ("fix", f.fix))
+        if _is_placeholder(text)
     ]
 
 

@@ -134,9 +134,10 @@ def test_rules_in_instructions(
                     final("Findings", finding()),
                 ],
                 Findings.model_validate(finding()),
-                id=f"placeholder-{field}-then-concrete",
+                id=f"placeholder-{field}-{value!r}-then-concrete",
             )
-            for field, value in [("problem", "Placeholder."), ("fix", "n/a")]
+            for field in ("problem", "fix")
+            for value in ("Placeholder.", "  N/A  ", "TBD", "...", "")
         ),
     ],
 )
