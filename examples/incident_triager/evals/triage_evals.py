@@ -23,8 +23,8 @@ Ctx = EvaluatorContext[IncidentCase, Triage, PlantedCause]
 
 
 def names_cause(h: Hypothesis, cause: PlantedCause) -> bool:
-    """Right category, and evidence that cites one of the key refs."""
-    return h.category == cause.category and any(
+    """An accepted category, and evidence that cites one of the key refs."""
+    return h.category in cause.categories and any(
         cites(e.ref, key) for e in h.evidence for key in cause.key_refs
     )
 

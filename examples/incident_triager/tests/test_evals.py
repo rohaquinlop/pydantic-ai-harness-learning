@@ -27,7 +27,7 @@ CAUSES = {c.inputs.title: c.metadata for c in CASES if c.metadata}
 
 
 def right(cause: PlantedCause) -> dict[str, Any]:
-    return hypothesis(cause.category, cause.key_refs[0])
+    return hypothesis(cause.categories[0], cause.key_refs[0])
 
 
 def model_from(reply: Reply) -> FunctionModel:
@@ -71,6 +71,11 @@ def test_case_builds_and_lists_its_key_refs(case: Any, tmp_path: Path) -> None:
             lambda cause: [right(cause)],
             {c.name: (True, True, 1) for c in CASES},
             id="right-first",
+        ),
+        pytest.param(
+            lambda cause: [hypothesis(cause.categories[-1], cause.key_refs[0])],
+            {c.name: (True, True, 1) for c in CASES},
+            id="last-accepted-category",
         ),
         pytest.param(
             lambda cause: [DECOY, right(cause)],

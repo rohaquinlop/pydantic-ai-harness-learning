@@ -28,7 +28,7 @@ An incident triager built with pydantic-ai. It reads a local incident bundle (th
     | `traffic_spike` | requests per second triple | a log-level config change |
     | `memory_leak` | a template cache that never evicts, deployed 2 days ago | a typo fix 30 min ago |
 
-    `TopHypothesis` checks that the first hypothesis has the right category and cites a key ref. `InTopThree` checks the first three. `HypothesisCount` reports how many hypotheses the agent gave.
+    `TopHypothesis` checks that the first hypothesis has an accepted category and cites a key ref. `bad_deploy` accepts `code_change` or `config_change`, because its cause is a config value changed in code. `InTopThree` checks the first three. `HypothesisCount` reports how many hypotheses the agent gave.
 
 ## Limits
 

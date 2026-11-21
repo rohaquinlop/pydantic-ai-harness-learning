@@ -77,7 +77,7 @@ class IncidentCase(BaseModel):
 
 
 class PlantedCause(BaseModel):
-    category: Category
+    categories: list[Category]
     key_refs: list[str]
 
 
@@ -492,21 +492,22 @@ CASES: list[Case[IncidentCase, Triage, PlantedCause]] = [
         name="bad_deploy",
         inputs=BAD_DEPLOY,
         metadata=PlantedCause(
-            category="code_change", key_refs=["deploy:d-102"]
+            categories=["code_change", "config_change"],
+            key_refs=["deploy:d-102"],
         ),
     ),
     Case(
         name="feature_flag",
         inputs=FEATURE_FLAG,
         metadata=PlantedCause(
-            category="config_change", key_refs=["deploy:d-201"]
+            categories=["config_change"], key_refs=["deploy:d-201"]
         ),
     ),
     Case(
         name="upstream_outage",
         inputs=UPSTREAM,
         metadata=PlantedCause(
-            category="dependency",
+            categories=["dependency"],
             key_refs=["logs/payments.log", "metric:payment_latency_ms"],
         ),
     ),
@@ -514,14 +515,14 @@ CASES: list[Case[IncidentCase, Triage, PlantedCause]] = [
         name="traffic_spike",
         inputs=TRAFFIC,
         metadata=PlantedCause(
-            category="capacity", key_refs=["metric:requests_per_s"]
+            categories=["capacity"], key_refs=["metric:requests_per_s"]
         ),
     ),
     Case(
         name="memory_leak",
         inputs=MEMORY_LEAK,
         metadata=PlantedCause(
-            category="resource_leak",
+            categories=["resource_leak"],
             key_refs=["deploy:d-501", "metric:memory_mb"],
         ),
     ),
