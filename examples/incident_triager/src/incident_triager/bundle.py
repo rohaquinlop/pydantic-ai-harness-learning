@@ -53,25 +53,27 @@ def read_lines(bundle: Path, path: Path) -> list[LogLine]:
     return [
         LogLine(f"{ref}:{n}", text, _line_ts(text))
         for n, text in enumerate(
-            path.read_text(errors="replace").splitlines(), 1
+            path.read_text(encoding="utf-8", errors="replace").splitlines(), 1
         )
     ]
 
 
 def load_alert(bundle: Path) -> dict[str, Any]:
-    return json.loads((bundle / "alert.json").read_text())
+    return json.loads((bundle / "alert.json").read_text(encoding="utf-8"))
 
 
 def load_deploys(bundle: Path) -> list[dict[str, Any]]:
     path = bundle / "deploys.json"
-    return json.loads(path.read_text()) if path.is_file() else []
+    return (
+        json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
+    )
 
 
 def load_metrics(bundle: Path) -> list[MetricRow]:
     path = bundle / "metrics.csv"
     if not path.is_file():
         return []
-    with path.open(newline="") as f:
+    with path.open(encoding="utf-8", newline="") as f:
         return [
             MetricRow(parse_ts(r["timestamp"]), r["metric"], float(r["value"]))
             for r in csv.DictReader(f)

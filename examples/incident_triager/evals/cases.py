@@ -140,7 +140,7 @@ def _build_repo(commits: list[Commit], repo: Path) -> list[str]:
     shas = []
     for c in commits:
         for name, content in c.files.items():
-            (repo / name).write_text(content)
+            (repo / name).write_text(content, encoding="utf-8")
         _git(repo, "add", ".")
         _git(repo, "commit", "-qm", c.message, when=at(c.at))
         shas.append(_git(repo, "rev-parse", "--short", "HEAD"))
@@ -157,7 +157,9 @@ def build_bundle(case: IncidentCase, bundle: Path) -> Path:
         "fired_at": at(case.fired_at).isoformat(),
         "summary": case.summary,
     }
-    (bundle / "alert.json").write_text(json.dumps(alert, indent=2))
+    (bundle / "alert.json").write_text(
+        json.dumps(alert, indent=2), encoding="utf-8"
+    )
     deploys = [
         {
             "id": d.id,
@@ -170,12 +172,14 @@ def build_bundle(case: IncidentCase, bundle: Path) -> Path:
         }
         for d in case.deploys
     ]
-    (bundle / "deploys.json").write_text(json.dumps(deploys, indent=2))
+    (bundle / "deploys.json").write_text(
+        json.dumps(deploys, indent=2), encoding="utf-8"
+    )
     (bundle / "logs").mkdir()
     for name, spec in case.logs.items():
         text = "\n".join(_log_lines(case, spec)) + "\n"
-        (bundle / "logs" / name).write_text(text)
-    with (bundle / "metrics.csv").open("w", newline="") as f:
+        (bundle / "logs" / name).write_text(text, encoding="utf-8")
+    with (bundle / "metrics.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["timestamp", "metric", "value"])
         writer.writerows(_metric_rows(case))
