@@ -69,9 +69,16 @@ def _in_window(
 def _matches(
     bundle: Path, regex: re.Pattern[str], file_glob: str
 ) -> list[LogLine]:
+    try:
+        paths = log_files(bundle, file_glob)
+    except (NotImplementedError, ValueError) as e:
+        raise ModelRetry(
+            f"Invalid file_glob {file_glob!r}: {e}. Use a relative glob "
+            "under logs/, such as `*.log`."
+        ) from e
     return [
         line
-        for path in log_files(bundle, file_glob)
+        for path in paths
         for line in read_lines(bundle, path)
         if regex.search(line.text)
     ]
@@ -152,7 +159,7 @@ def count_logs(
         rows = rows[:MAX_BUCKETS] + [
             f"[{len(rows) - MAX_BUCKETS} more buckets: use a larger bucket]"
         ]
-    head = f"{len(lines)} matches for {pattern!r}"
+    head = f"{len(lines)} matches"
     return "\n".join([head, *rows, *_skipped_note(skipped)])
 
 
@@ -209,10 +216,11 @@ def read_log(
     if not path.is_relative_to(root):
         raise ModelRetry(f"{file} is outside logs/. Use a file under logs/.")
     if not path.is_file():
-        return f"{file} is not a log file. Use list_sources to see the files."
+        return "No such log file. Use list_sources to see the files."
     lines = read_lines(bundle, path)
     start = max(start_line, 1)
-    chunk = lines[start - 1 : start - 1 + min(max_lines, MAX_READ_LINES)]
+    count = max(1, min(max_lines, MAX_READ_LINES))
+    chunk = lines[start - 1 : start - 1 + count]
     body = [f"{x.ref}: {_cut(x.text)}" for x in chunk]
     return "\n".join([*body, f"[{len(chunk)} of {len(lines)} lines]"])
 
@@ -281,7 +289,12 @@ def _git(ctx: RunContext[TriageDeps], *args: str) -> str | None:
         return None
     try:
         return subprocess.run(
-            ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+            ["git", *args],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
         ).stdout
     except subprocess.CalledProcessError as e:
         raise ModelRetry(f"git failed: {e.stderr.strip()}") from e
@@ -339,7 +352,7 @@ def git_show(
     if out is None:
         return "this bundle has no repo/"
     lines = out.splitlines()
-    limit = min(max_lines, MAX_SHOW_LINES)
+    limit = max(1, min(max_lines, MAX_SHOW_LINES))
     more = [f"[{len(lines) - limit} more lines]"] if len(lines) > limit else []
     return "\n".join([_cut(x) for x in lines[:limit]] + more)
 

@@ -67,7 +67,13 @@ def call(bundle: Path, tool: Tool, **args: Any) -> str:
             {"file": "logs/api.log", "max_lines": 999},
             "[200 of 3320 lines]",
         ),
-        ("incident", tools.read_log, {"file": "x.log"}, "not a log file"),
+        ("incident", tools.read_log, {"file": "x.log"}, "No such log file"),
+        (
+            "incident",
+            tools.read_log,
+            {"file": "api.log", "max_lines": -5},
+            "[1 of 3320 lines]",
+        ),
         (
             "incident",
             tools.query_metric,
@@ -130,6 +136,8 @@ def test_tool_output(
             "Invalid timestamp",
         ),
         (tools.read_log, {"file": "../alert.json"}, "outside logs/"),
+        (tools.count_logs, {"pattern": "x", "file_glob": "/etc/*"}, "relative"),
+        (tools.search_logs, {"pattern": "x", "file_glob": ""}, "relative"),
         (tools.query_metric, {"name": "nope"}, "Unknown metric 'nope'"),
         (tools.git_show, {"sha": "--output=/x"}, "is not a commit SHA"),
         (tools.git_show, {"sha": "deadbeef"}, "git failed"),

@@ -65,6 +65,21 @@ def test_cites_matches_whole_refs(text: str, ref: str, expected: bool) -> None:
             "deploy:d-9.",
             id="one-bad-ref-of-two",
         ),
+        *(
+            pytest.param(
+                [
+                    [echo, DEPLOYS],
+                    [final(hypothesis("code_change", "deploy:d-999"))],
+                    [GROUNDED],
+                ],
+                "deploy:d-999.",
+                id=f"ref-only-in-{echo[0]}-args",
+            )
+            for echo in (
+                ("count_logs", {"pattern": "deploy:d-999"}),
+                ("read_log", {"file": "deploy:d-999"}),
+            )
+        ),
     ],
 )
 def test_validator_grounds_every_ref(
