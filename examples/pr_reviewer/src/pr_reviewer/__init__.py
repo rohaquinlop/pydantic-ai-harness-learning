@@ -53,7 +53,8 @@ def main() -> None:
             args.post,
         )
     except (BudgetSpent, AgentRunError) as e:
-        raise SystemExit(f"reviewer failed: {e}") from e
+        lines = [f"reviewer failed: {e}", *getattr(e, "__notes__", [])]
+        raise SystemExit("\n".join(lines)) from e
     except subprocess.CalledProcessError as e:
         raise SystemExit(f"{' '.join(e.cmd)} failed: {e.stderr.strip()}") from e
 
@@ -64,6 +65,8 @@ def main() -> None:
         else f"verify call (after {MAX_REVIEWS} reviews)"
     )
     print(f"{call}, {plan.model}")
+    for retry in outcome.retries:
+        print(f"retry: {retry}")
     if isinstance(outcome.output, Current):
         print(f"current at {outcome.output.sha}")
     else:

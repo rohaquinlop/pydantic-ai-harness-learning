@@ -2,7 +2,15 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
-from pydantic_ai import AgentRunResult, UsageLimits
+from pydantic_ai import AgentRunResult, UsageLimits, capture_run_messages
+from pydantic_ai.exceptions import AgentRunError
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelRequestPart,
+    RetryFeedbackPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
@@ -73,15 +81,41 @@ def _reserve_and_run(
     state = state.model_copy(update=reserved)
     save_state(path, state)
 
-    with policy_base(repo, bundle.policy_sha) as base:
+    with (
+        policy_base(repo, bundle.policy_sha) as base,
+        capture_run_messages() as messages,
+    ):
         deps = ReviewDeps(base, bundle.head_sha, changed_files(bundle.diff))
-        result = run_reviewer(
-            engine,
-            build_prompt(bundle, verify=plan.kind == "verify"),
-            model,
-            deps,
-        )
+        try:
+            result = run_reviewer(
+                engine,
+                build_prompt(bundle, verify=plan.kind == "verify"),
+                model,
+                deps,
+            )
+        except AgentRunError as e:
+            for line in _retries(messages):
+                e.add_note(f"retry: {line}")
+            raise
     return state, result
+
+
+def _retry_line(part: ModelRequestPart) -> str | None:
+    if isinstance(part, RetryFeedbackPart):
+        return f"output: {part.content}"
+    if isinstance(part, ToolReturnPart) and part.outcome == "retried":
+        return f"{part.tool_name}: {part.content}"
+    return None
+
+
+def _retries(messages: list[ModelMessage]) -> tuple[str, ...]:
+    return tuple(
+        line
+        for message in messages
+        if isinstance(message, ModelRequest)
+        for part in message.parts
+        if (line := _retry_line(part))
+    )
 
 
 def review(
@@ -116,13 +150,15 @@ def review(
             repo, path, state, plan, bundle, model or plan.model, engine
         )
         output, usage = result.output, result.usage
+        retries = _retries(result.all_messages())
     else:
         output, usage = Current(sha=bundle.head_sha), RunUsage()
+        retries = ()
 
     findings = [] if isinstance(output, Current) else output.findings
     state = state.model_copy(update={"findings": findings})
     save_state(path, state)
-    outcome = ReviewOutcome(plan, output, usage)
+    outcome = ReviewOutcome(plan, output, usage, retries)
     if target:
         payload = review_payload(outcome, state, bundle.head_sha, bundle.diff)
         post_review(repo, target, payload)

@@ -6,6 +6,7 @@ from pr_reviewer.bundle import build_bundle, run
 from pr_reviewer.models import Current, Findings, ReviewOutcome
 from pr_reviewer.review import Engine, review
 from pr_reviewer.state import BudgetSpent, load_state, state_path
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from examples.pr_reviewer.evals.cases import commit
 from examples.pr_reviewer.tests.helpers import Call, Script, final, finding
@@ -14,9 +15,12 @@ READ_RULES: Call = ("read_file", {"path": "CLAUDE.md"})
 
 
 def review_once(
-    repo: Path, reply: Call, new_round: bool = False, engine: Engine = "custom"
+    repo: Path,
+    *replies: Call,
+    new_round: bool = False,
+    engine: Engine = "custom",
 ) -> tuple[ReviewOutcome, str]:
-    script = Script([[READ_RULES], [reply]])
+    script = Script([[READ_RULES], *([reply] for reply in replies)])
     outcome = review(
         repo,
         "main",
@@ -93,6 +97,39 @@ def test_empty_diff_is_current_without_a_model_call(demo_repo: Path) -> None:
     assert script.prompts == []
     state = load_state(state_path(demo_repo), new_round=False)
     assert (state.calls, state.findings) == (0, [])
+
+
+@pytest.mark.parametrize("engine", get_args(Engine))
+def test_outcome_lists_validator_retries(
+    demo_repo: Path, engine: Engine
+) -> None:
+    outcome, _ = review_once(
+        demo_repo,
+        final("Findings", finding(fix="n/a")),
+        final("Findings", finding()),
+        engine=engine,
+    )
+
+    assert outcome.output == Findings.model_validate(finding())
+    assert len(outcome.retries) == 1
+    assert outcome.retries[0].startswith(
+        "final_result_Findings: These findings have an empty or placeholder "
+        "field: calc.py:2 fix."
+    )
+
+
+@pytest.mark.parametrize("engine", get_args(Engine))
+def test_failed_run_notes_its_retries(demo_repo: Path, engine: Engine) -> None:
+    placeholder = final("Findings", finding(fix="n/a"))
+    with pytest.raises(UnexpectedModelBehavior) as raised:
+        review_once(demo_repo, placeholder, placeholder, engine=engine)
+
+    notes = raised.value.__notes__
+    assert len(notes) == 1
+    assert notes[0].startswith(
+        "retry: final_result_Findings: These findings have an empty or "
+        "placeholder field: calc.py:2 fix."
+    )
 
 
 def test_policy_base_is_the_target_tip(demo_repo: Path) -> None:
