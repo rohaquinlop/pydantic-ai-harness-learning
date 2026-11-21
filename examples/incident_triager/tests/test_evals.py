@@ -18,7 +18,7 @@ from examples.incident_triager.evals.cases import (
     PlantedCause,
     build_bundle,
 )
-from examples.incident_triager.evals.triage_evals import run_evals
+from examples.incident_triager.evals.review_evals import run_evals
 from examples.incident_triager.tests.helpers import final, hypothesis
 
 Reply = Callable[[PlantedCause], list[dict[str, Any]]]

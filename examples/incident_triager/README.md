@@ -55,7 +55,7 @@ It prints the hypotheses, each retry, the tool call count, and the usage. The de
 The evals call a real model. Start with one run per case:
 
 ```bash
-uv run --env-file .env -m examples.incident_triager.evals.triage_evals --repeat 1
+uv run --env-file .env -m examples.incident_triager.evals.review_evals --repeat 1
 ```
 
 Flags: `--model`, `--repeat N`, `--max-concurrency N` (default 2).

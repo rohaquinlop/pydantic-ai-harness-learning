@@ -87,7 +87,7 @@ uv run --env-file .env -m examples.ui_qa_reviewer.evals.review_evals --model dee
 ```
 
 ```bash
-uv run --env-file .env -m examples.incident_triager.evals.triage_evals --model deepseek:deepseek-chat
+uv run --env-file .env -m examples.incident_triager.evals.review_evals --model deepseek:deepseek-chat
 ```
 
 - Flags:
