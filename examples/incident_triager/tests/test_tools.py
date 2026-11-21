@@ -124,8 +124,8 @@ def call(bundle: Path, tool: Tool, **args: Any) -> str:
         ),
         ("odd", tools.list_sources, {}, "repo: no"),
         ("odd", tools.list_deploys, {}, "no deploys in this window"),
-        ("odd", tools.git_log, {}, "this bundle has no repo/"),
-        ("odd", tools.git_show, {"sha": "abcd"}, "this bundle has no repo/"),
+        ("odd", tools.git_log, {}, tools.NO_REPO),
+        ("odd", tools.git_show, {"sha": "abcd"}, tools.NO_REPO),
     ],
 )
 def test_tool_output(
@@ -235,8 +235,16 @@ def test_bad_bundle_data_raises_bundle_error(
 def test_git_ignores_a_repo_dir_without_git(odd: Path) -> None:
     """Without .git, git would search parent dirs outside the bundle."""
     (odd / "repo").mkdir()
-    assert call(odd, tools.git_log) == "this bundle has no repo/"
+    assert call(odd, tools.git_log) == tools.NO_REPO
     assert "repo: no" in call(odd, tools.list_sources)
+
+
+def test_git_tools_report_a_missing_git(
+    incident: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PATH", "")
+    assert call(incident, tools.git_log) == tools.NO_REPO
+    assert "repo: no" in call(incident, tools.list_sources)
 
 
 def test_git_stays_inside_the_bundle(odd: Path) -> None:

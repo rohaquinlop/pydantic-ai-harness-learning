@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 from collections import Counter
 from datetime import UTC, datetime, timedelta
@@ -31,6 +32,7 @@ MAX_SHOW_LINES = 300
 MAX_COMMITS = 50
 SHA = re.compile(r"[0-9a-f]{4,40}")
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+NO_REPO = "no git repo: repo/ is missing or git is not installed"
 
 
 def _bundle(ctx: RunContext[TriageDeps]) -> Path:
@@ -287,7 +289,7 @@ def list_deploys(
 
 
 def _has_repo(bundle: Path) -> bool:
-    return (bundle / "repo" / ".git").exists()
+    return (bundle / "repo" / ".git").exists() and bool(shutil.which("git"))
 
 
 def _git(ctx: RunContext[TriageDeps], *args: str) -> str | None:
@@ -344,7 +346,7 @@ def git_log(
         args += ["--", _repo_path(ctx, path)]
     out = _git(ctx, *args)
     if out is None:
-        return "this bundle has no repo/"
+        return NO_REPO
     lines = [_cut(x) for x in out.splitlines()]
     if not lines:
         return "no commits in this window"
@@ -373,7 +375,7 @@ def git_show(
         ctx, "show", "--stat", "--patch", "--format=commit:%h %cI %s", sha, "--"
     )
     if out is None:
-        return "this bundle has no repo/"
+        return NO_REPO
     lines = out.splitlines()
     limit = max(1, min(max_lines, MAX_SHOW_LINES))
     more = [f"[{len(lines) - limit} more lines]"] if len(lines) > limit else []
