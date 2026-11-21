@@ -51,11 +51,31 @@ reviewer = Agent(
 )
 
 
+PLACEHOLDERS = frozenset(
+    {"", "n/a", "na", "none", "-", "placeholder", "tbd", "todo"}
+)
+
+
+def _is_placeholder(text: str) -> bool:
+    """Trailing dots are stripped, so `Placeholder.` and `...` match too."""
+    return text.strip().lower().rstrip(".") in PLACEHOLDERS
+
+
+def _placeholder_fields(findings: list[Finding]) -> list[str]:
+    return [
+        f"{f.file}:{f.line} {name}"
+        for f in findings
+        for name in ("problem", "fix")
+        if _is_placeholder(getattr(f, name))
+    ]
+
+
 @reviewer.output_validator
 def check_result(
     ctx: RunContext[ReviewDeps], output: ReviewResult
 ) -> ReviewResult:
-    """Reject a result that names a SHA or a file the reviewer was not given.
+    """Reject a result that names a SHA or a file the reviewer was not given,
+    or a finding whose problem or fix is empty or a placeholder.
 
     A finding may point at a file outside the diff (a caller, a doc that needs an update),
     but that file must exist in the policy base.
@@ -83,6 +103,12 @@ def check_result(
             f"These files are not in the diff or the policy base: {', '.join(unknown)}. "
             f"Changed files: {', '.join(sorted(deps.changed_files))}. "
             "Use a path from the diff or one that exists in the policy base."
+        )
+    if placeholders := _placeholder_fields(output.findings):
+        raise ModelRetry(
+            "These findings have an empty or placeholder field: "
+            f"{', '.join(placeholders)}. Give a concrete problem and fix, "
+            "or drop the finding."
         )
     return output
 

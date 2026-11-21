@@ -28,7 +28,7 @@ DIFF = (
 Call = tuple[str, dict[str, Any]]
 
 
-def finding(file: str = "calc.py") -> dict[str, Any]:
+def finding(file: str = "calc.py", **fields: Any) -> dict[str, Any]:
     return {
         "findings": [
             {
@@ -37,6 +37,7 @@ def finding(file: str = "calc.py") -> dict[str, Any]:
                 "rubric": "correctness",
                 "problem": "division by zero",
                 "fix": "guard b",
+                **fields,
             }
         ]
     }

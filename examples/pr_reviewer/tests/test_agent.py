@@ -127,6 +127,17 @@ def test_rules_in_instructions(
             Current(sha=HEAD_SHA),
             id="path-escape-rejected",
         ),
+        *(
+            pytest.param(
+                [
+                    final("Findings", finding(**{field: value})),
+                    final("Findings", finding()),
+                ],
+                Findings.model_validate(finding()),
+                id=f"placeholder-{field}-then-concrete",
+            )
+            for field, value in [("problem", "Placeholder."), ("fix", "n/a")]
+        ),
     ],
 )
 @ENGINES
