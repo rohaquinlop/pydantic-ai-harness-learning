@@ -11,3 +11,4 @@ class ReviewOutcome:
     plan: CallPlan
     output: ReviewResult
     usage: RunUsage
+    retries: tuple[str, ...] = ()

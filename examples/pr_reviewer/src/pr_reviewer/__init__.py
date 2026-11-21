@@ -64,6 +64,8 @@ def main() -> None:
         else f"verify call (after {MAX_REVIEWS} reviews)"
     )
     print(f"{call}, {plan.model}")
+    for retry in outcome.retries:
+        print(f"retry: {retry}")
     if isinstance(outcome.output, Current):
         print(f"current at {outcome.output.sha}")
     else:

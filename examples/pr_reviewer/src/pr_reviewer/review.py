@@ -3,6 +3,13 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic_ai import AgentRunResult, UsageLimits
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelRequestPart,
+    RetryFeedbackPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
@@ -84,6 +91,25 @@ def _reserve_and_run(
     return state, result
 
 
+def _retry_line(part: ModelRequestPart) -> str | None:
+    if isinstance(part, RetryFeedbackPart):
+        return f"output: {part.content}"
+    if isinstance(part, ToolReturnPart) and part.outcome == "retried":
+        return f"{part.tool_name}: {part.content}"
+    return None
+
+
+def _retries(messages: list[ModelMessage]) -> tuple[str, ...]:
+    """One line per retry sent to the model, from a tool or the validator."""
+    return tuple(
+        line
+        for message in messages
+        if isinstance(message, ModelRequest)
+        for part in message.parts
+        if (line := _retry_line(part))
+    )
+
+
 def review(
     repo: Path,
     base_ref: str,
@@ -116,13 +142,15 @@ def review(
             repo, path, state, plan, bundle, model or plan.model, engine
         )
         output, usage = result.output, result.usage
+        retries = _retries(result.all_messages())
     else:
         output, usage = Current(sha=bundle.head_sha), RunUsage()
+        retries = ()
 
     findings = [] if isinstance(output, Current) else output.findings
     state = state.model_copy(update={"findings": findings})
     save_state(path, state)
-    outcome = ReviewOutcome(plan, output, usage)
+    outcome = ReviewOutcome(plan, output, usage, retries)
     if target:
         payload = review_payload(outcome, state, bundle.head_sha, bundle.diff)
         post_review(repo, target, payload)
