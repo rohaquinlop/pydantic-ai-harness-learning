@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 from incident_triager import tools
-from incident_triager.bundle import load_deploys
+from incident_triager.bundle import BundleError, load_deploys
 from incident_triager.models import TriageDeps
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.models.test import TestModel
@@ -106,10 +106,16 @@ def call(bundle: Path, tool: Tool, **args: Any) -> str:
             "odd",
             tools.search_logs,
             {"pattern": ".", "since": "2026-11-20T09:58:00+00:00"},
-            "[end: 2 matches]\n[skipped 1 unparseable lines]",
+            "[end: 3 matches]\n[skipped 2 unparseable lines]",
         ),
         ("odd", tools.search_logs, {"pattern": "x{400}"}, "[+127 chars]"),
-        ("odd", tools.count_logs, {"pattern": "."}, "[skipped 1 unparseable"),
+        ("odd", tools.count_logs, {"pattern": "."}, "[skipped 2 unparseable"),
+        (
+            "odd",
+            tools.count_logs,
+            {"pattern": "space", "bucket_minutes": 60},
+            "2026-11-20T10:00:00+00:00 logs/app.log 1",
+        ),
         ("odd", tools.list_sources, {}, "repo: no"),
         ("odd", tools.list_deploys, {}, "no deploys in this window"),
         ("odd", tools.git_log, {}, "this bundle has no repo/"),
@@ -164,3 +170,49 @@ def test_git_show_clamps_a_negative_max_lines(incident: Path) -> None:
     first, footer = out.splitlines()
     assert first.startswith(f"commit:{sha} ")
     assert footer.endswith(" more lines]")
+
+
+def test_git_log_caps_the_commit_list(
+    incident: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(tools, "MAX_COMMITS", 2)
+    lines = call(incident, tools.git_log).splitlines()
+    assert len(lines) == 3
+    assert all(x.startswith("commit:") for x in lines[:2])
+    assert lines[2] == "[more commits: narrow the window or the path]"
+
+
+@pytest.mark.parametrize(
+    ("file", "content", "tool", "message"),
+    [
+        (
+            "deploys.json",
+            '[{"id": "d-1"}]',
+            tools.list_deploys,
+            "deploys.json item 0: missing",
+        ),
+        (
+            "deploys.json",
+            (
+                '[{"id": "d-1", "at": "soon", "service": "s", "kind": "code", '
+                '"version": "v1", "commit": "abcd", "description": "x"}]'
+            ),
+            tools.list_deploys,
+            "deploys.json item 0: bad at",
+        ),
+        ("deploys.json", "{not json", tools.list_deploys, "deploys.json: "),
+        (
+            "metrics.csv",
+            "timestamp,metric,value\n2026-11-20T09:00:00Z,cpu_pct,high\n",
+            tools.query_metric,
+            "metrics.csv: ValueError",
+        ),
+    ],
+)
+def test_bad_bundle_data_raises_bundle_error(
+    odd: Path, file: str, content: str, tool: Tool, message: str
+) -> None:
+    (odd / file).write_text(content, encoding="utf-8")
+    args = {"name": "cpu_pct"} if tool is tools.query_metric else {}
+    with pytest.raises(BundleError, match=message):
+        call(odd, tool, **args)

@@ -11,6 +11,7 @@ from examples.pr_reviewer.tests.helpers import Call, Script
 DEPLOYS: Call = ("list_deploys", {})
 ALERT: Call = ("read_alert", {})
 GROUNDED = final(hypothesis("code_change", "deploy:d-102"))
+MISFILED = {"source": "log", "ref": "deploy:d-102", "detail": "seen"}
 
 
 @pytest.mark.parametrize(
@@ -64,6 +65,15 @@ def test_cites_matches_whole_refs(text: str, ref: str, expected: bool) -> None:
             ],
             "deploy:d-9.",
             id="one-bad-ref-of-two",
+        ),
+        pytest.param(
+            [
+                [DEPLOYS],
+                [final({**hypothesis("code_change"), "evidence": [MISFILED]})],
+                [GROUNDED],
+            ],
+            "does not fit source 'log'",
+            id="source-does-not-fit-ref",
         ),
         *(
             pytest.param(

@@ -50,3 +50,12 @@ def test_rejects_a_dir_without_alert(
 ) -> None:
     with pytest.raises(SystemExit):
         run_cli(tmp_path, [], monkeypatch)
+
+
+def test_bad_bundle_exits_with_a_message(
+    odd: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (odd / "deploys.json").write_text('[{"id": "d-1"}]', encoding="utf-8")
+    turns = [[("list_deploys", {})]]
+    with pytest.raises(SystemExit, match="bad bundle: deploys.json item 0"):
+        run_cli(odd, turns, monkeypatch)

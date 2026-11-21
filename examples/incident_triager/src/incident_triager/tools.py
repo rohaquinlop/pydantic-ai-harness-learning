@@ -27,6 +27,7 @@ MAX_READ_LINES = 200
 MAX_BUCKETS = 100
 MAX_METRIC_POINTS = 60
 MAX_SHOW_LINES = 300
+MAX_COMMITS = 50
 SHA = re.compile(r"[0-9a-f]{4,40}")
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
@@ -321,7 +322,11 @@ def git_log(
         until: ISO 8601 end of the time window.
         path: Only commits that touch this path in the repo.
     """
-    args = ["log", "--format=commit:%h %cI %s"]
+    args = [
+        "log",
+        f"--max-count={MAX_COMMITS + 1}",
+        "--format=commit:%h %cI %s",
+    ]
     for flag, value in (("since", since), ("until", until)):
         if ts := _ts_arg(value):
             args.append(f"--{flag}={ts.isoformat()}")
@@ -330,7 +335,15 @@ def git_log(
     out = _git(ctx, *args)
     if out is None:
         return "this bundle has no repo/"
-    return out.strip() or "no commits in this window"
+    lines = [_cut(x) for x in out.splitlines()]
+    if not lines:
+        return "no commits in this window"
+    more = (
+        ["[more commits: narrow the window or the path]"]
+        if len(lines) > MAX_COMMITS
+        else []
+    )
+    return "\n".join(lines[:MAX_COMMITS] + more)
 
 
 def git_show(

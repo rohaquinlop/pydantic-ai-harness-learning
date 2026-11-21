@@ -3,6 +3,7 @@ from pathlib import Path
 
 from pydantic_ai.exceptions import AgentRunError
 
+from incident_triager.bundle import BundleError
 from incident_triager.models import Hypothesis
 from incident_triager.triage import triage
 
@@ -38,6 +39,8 @@ def main() -> None:
     except AgentRunError as e:
         lines = [f"triage failed: {e}", *getattr(e, "__notes__", [])]
         raise SystemExit("\n".join(lines)) from e
+    except BundleError as e:
+        raise SystemExit(f"bad bundle: {e}") from e
 
     print(outcome.output.summary)
     for rank, h in enumerate(outcome.output.hypotheses, 1):

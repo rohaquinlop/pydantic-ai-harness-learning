@@ -1,13 +1,28 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Category = Literal[
     "code_change", "config_change", "dependency", "capacity", "resource_leak"
 ]
 Source = Literal["alert", "log", "metric", "deploy", "commit"]
+REF_PREFIXES: dict[str, Source] = {
+    "logs/": "log",
+    "metric:": "metric",
+    "deploy:": "deploy",
+    "commit:": "commit",
+}
+
+
+def source_of(ref: str) -> Source | None:
+    if ref == "alert":
+        return "alert"
+    return next(
+        (s for prefix, s in REF_PREFIXES.items() if ref.startswith(prefix)),
+        None,
+    )
 
 
 @dataclass
@@ -25,6 +40,16 @@ class Evidence(BaseModel):
         )
     )
     detail: str = Field(description="What this evidence shows, in one line.")
+
+    @model_validator(mode="after")
+    def source_matches_ref(self) -> Self:
+        if source_of(self.ref) != self.source:
+            raise ValueError(
+                f"ref {self.ref!r} does not fit source {self.source!r}. "
+                "Use `alert`, `logs/<file>:<line>`, `metric:<name>`, "
+                "`deploy:<id>`, or `commit:<sha>`, and the matching source."
+            )
+        return self
 
 
 class Hypothesis(BaseModel):

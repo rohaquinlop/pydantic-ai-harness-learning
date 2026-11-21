@@ -27,8 +27,14 @@ def parse_ts(text: str) -> datetime:
 
 
 def _line_ts(text: str) -> datetime | None:
+    """The line's leading timestamp, `2026-11-20T09:00:00Z` or
+    `2026-11-20 09:00:00`. A date with no time is not a timestamp."""
+    parts = text.split(" ", 2)
+    stamp = parts[0]
+    if "T" not in stamp and len(parts) > 1:
+        stamp = f"{stamp}T{parts[1]}"
     try:
-        return parse_ts(text.split(" ", 1)[0])
+        return parse_ts(stamp)
     except ValueError:
         return None
 
@@ -58,15 +64,48 @@ def read_lines(bundle: Path, path: Path) -> list[LogLine]:
     ]
 
 
+class BundleError(Exception):
+    """A bundle file the tools cannot read. The run stops: the data is wrong,
+    not the model's call."""
+
+
+DEPLOY_KEYS = (
+    "id",
+    "at",
+    "service",
+    "kind",
+    "version",
+    "commit",
+    "description",
+)
+
+
+def _json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        raise BundleError(f"{path.name}: {e}") from e
+
+
 def load_alert(bundle: Path) -> dict[str, Any]:
-    return json.loads((bundle / "alert.json").read_text(encoding="utf-8"))
+    return _json(bundle / "alert.json")
+
+
+def _check_deploy(n: int, deploy: dict[str, Any]) -> None:
+    if missing := [k for k in DEPLOY_KEYS if k not in deploy]:
+        raise BundleError(f"deploys.json item {n}: missing {missing}")
+    try:
+        parse_ts(deploy["at"])
+    except (TypeError, ValueError) as e:
+        raise BundleError(f"deploys.json item {n}: bad at: {e}") from e
 
 
 def load_deploys(bundle: Path) -> list[dict[str, Any]]:
     path = bundle / "deploys.json"
-    return (
-        json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
-    )
+    deploys = _json(path) if path.is_file() else []
+    for n, deploy in enumerate(deploys):
+        _check_deploy(n, deploy)
+    return deploys
 
 
 def load_metrics(bundle: Path) -> list[MetricRow]:
@@ -74,7 +113,12 @@ def load_metrics(bundle: Path) -> list[MetricRow]:
     if not path.is_file():
         return []
     with path.open(encoding="utf-8", newline="") as f:
-        return [
-            MetricRow(parse_ts(r["timestamp"]), r["metric"], float(r["value"]))
-            for r in csv.DictReader(f)
-        ]
+        try:
+            return [
+                MetricRow(
+                    parse_ts(r["timestamp"]), r["metric"], float(r["value"])
+                )
+                for r in csv.DictReader(f)
+            ]
+        except (KeyError, TypeError, ValueError) as e:
+            raise BundleError(f"metrics.csv: {e!r}") from e
