@@ -100,7 +100,6 @@ def _retry_line(part: ModelRequestPart) -> str | None:
 
 
 def _retries(messages: list[ModelMessage]) -> tuple[str, ...]:
-    """One line per retry sent to the model, from a tool or the validator."""
     return tuple(
         line
         for message in messages
