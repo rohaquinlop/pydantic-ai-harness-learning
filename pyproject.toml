@@ -5,13 +5,14 @@ description = "Examples, experiments, and learnings with pydantic-ai."
 readme = "README.md"
 authors = [{ name = "Robin Quintero", email = "rohaquinlop301@gmail.com" }]
 requires-python = ">=3.13"
-dependencies = ["pr-reviewer"]
+dependencies = ["pr-reviewer", "ui-qa-reviewer"]
 
 [tool.uv.workspace]
 members = ["examples/*"]
 
 [tool.uv.sources]
 pr-reviewer = { workspace = true }
+ui-qa-reviewer = { workspace = true }
 
 [dependency-groups]
 dev = [

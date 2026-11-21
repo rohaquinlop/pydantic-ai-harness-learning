@@ -9,6 +9,7 @@ Each example is a uv workspace member under `examples/<name>/`, with its own `py
 | Example | What it shows |
 |---|---|
 | [pr_reviewer](examples/pr_reviewer/) | A fresh, read-only PR reviewer modeled on shepherd's reviewer: structured output, deps, and tools. |
+| [ui_qa_reviewer](examples/ui_qa_reviewer/) | A QA reviewer for a PR's UI changes: a real browser as a capability, image tool returns, egress policy, and a validator that reads the message history. |
 
 ## Setup
 

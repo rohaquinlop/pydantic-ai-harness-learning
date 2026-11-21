@@ -1,0 +1,41 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f6f7f9;
+  color: #1c1e21;
+}
+
+main {
+  max-width: 24rem;
+  margin: 4rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 8px;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  padding: 0.6rem;
+  border: 0;
+  border-radius: 4px;
+  background: #2457d6;
+  color: #fff;
+}
+
+button:focus-visible {
+  outline: 3px solid #1c1e21;
+  outline-offset: 2px;
+}
+
+#message {
+  overflow-wrap: anywhere;
+}
